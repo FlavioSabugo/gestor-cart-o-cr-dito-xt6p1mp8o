@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useFinance } from '@/stores/financeStore'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   PieChart,
   Pie,
@@ -14,6 +14,16 @@ import {
   Legend,
 } from 'recharts'
 import { MonthlyEvolutionChart } from '@/components/analytics/MonthlyEvolutionChart'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -23,6 +33,11 @@ const COLORS = [
   'hsl(var(--chart-5))',
   '#10B981',
   '#F59E0B',
+  '#8B5CF6',
+  '#EC4899',
+  '#14B8A6',
+  '#F43F5E',
+  '#0EA5E9',
 ]
 
 export default function AnalyticsPage() {
@@ -130,6 +145,50 @@ export default function AnalyticsPage() {
       </div>
 
       <MonthlyEvolutionChart />
+
+      <Card className="shadow-subtle border-none glass-effect mt-6">
+        <CardHeader>
+          <CardTitle>Histórico de Transações</CardTitle>
+          <CardDescription>Visualização detalhada por categoria e data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border bg-card/50 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.slice(0, 10).map((t) => (
+                  <TableRow key={t.id} className="transition-colors hover:bg-muted/30">
+                    <TableCell className="whitespace-nowrap">{formatDate(t.date)}</TableCell>
+                    <TableCell className="font-medium">{t.description}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-normal">
+                        {t.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {formatCurrency(t.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {transactions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                      Nenhuma transação registrada.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -20,8 +20,19 @@ export const categorizeTransaction = (
     }
   }
 
+  // Specific new categories
+  if (/(uber)/.test(lowerDesc)) return 'Uber'
+  if (/(farmacia|drogasil|pague menos|drogaria|pacheco|venancio|sao paulo)/.test(lowerDesc))
+    return 'Farmácias'
+  if (
+    /(netflix|spotify|amazon|aws|google|apple|internet|vivo|claro|tim|hbo|disney|prime)/.test(
+      lowerDesc,
+    )
+  )
+    return 'Assinaturas'
+
   // Fallbacks
-  if (/(uber|99|posto|shell|ipiranga|estacionamento|pedagio|conectar)/.test(lowerDesc))
+  if (/(99|posto|shell|ipiranga|estacionamento|pedagio|conectar)/.test(lowerDesc))
     return 'Transporte'
   if (
     /(ifood|mcdonalds|burger king|restaurante|padaria|supermercado|extra|carrefour|pao de acucar)/.test(
@@ -29,10 +40,7 @@ export const categorizeTransaction = (
     )
   )
     return 'Alimentação'
-  if (/(farmacia|drogasil|pague menos|hospital|clinica|unimed|laboratorio)/.test(lowerDesc))
-    return 'Saúde'
-  if (/(netflix|spotify|amazon|aws|google|apple|internet|vivo|claro|tim)/.test(lowerDesc))
-    return 'Serviços'
+  if (/(hospital|clinica|unimed|laboratorio)/.test(lowerDesc)) return 'Saúde'
   if (/(cinema|teatro|ingresso|show|sympla|eventim)/.test(lowerDesc)) return 'Lazer'
   if (/(faculdade|escola|curso|udemy|alura|puc|estacio)/.test(lowerDesc)) return 'Educação'
   if (/(shopping|loja|mercado livre|shopee|zara|renner|shein|aliexpress)/.test(lowerDesc))
