@@ -3,8 +3,25 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from './navigation/AppSidebar'
 import { TopHeader } from './navigation/TopHeader'
 import { MobileNav } from './navigation/MobileNav'
+import { useFinance } from '@/stores/financeStore'
+import { Loader2 } from 'lucide-react'
 
 export default function Layout() {
+  const { isLoading } = useFinance()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse font-medium">
+            Carregando dados financeiros...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background selection:bg-primary/20">

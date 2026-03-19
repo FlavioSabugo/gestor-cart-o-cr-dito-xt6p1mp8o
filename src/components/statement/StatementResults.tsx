@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ParsedTransaction } from '@/lib/statementParser'
 import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Save } from 'lucide-react'
+import { Save, Loader2 } from 'lucide-react'
 
 interface StatementResultsProps {
   results: ParsedTransaction[]
@@ -35,6 +35,7 @@ export function StatementResults({
 }: StatementResultsProps) {
   const { cards, addTransactions, addUpload } = useFinance()
   const card = cards.find((c) => c.id === cardId)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { totals, grandTotal } = useMemo(() => {
     const categoryTotals: Record<string, number> = {}
@@ -48,25 +49,30 @@ export function StatementResults({
 
   const sortedCategories = Object.entries(totals).sort((a, b) => b[1] - a[1])
 
-  const handleImport = () => {
-    const newTransactions = results.map((t) => ({
-      ...t,
-      cardId,
-      billingMonth,
-      billingYear,
-    }))
-    addTransactions(newTransactions)
+  const handleImport = async () => {
+    setIsSubmitting(true)
+    try {
+      const newTransactions = results.map((t) => ({
+        ...t,
+        cardId,
+        billingMonth,
+        billingYear,
+      }))
+      await addTransactions(newTransactions)
 
-    addUpload({
-      filename: file.name,
-      uploadDate: new Date().toISOString(),
-      cardId,
-      transactionCount: results.length,
-      billingMonth,
-      billingYear,
-    })
+      await addUpload({
+        filename: file.name,
+        uploadDate: new Date().toISOString(),
+        cardId,
+        transactionCount: results.length,
+        billingMonth,
+        billingYear,
+      })
 
-    onImportComplete()
+      onImportComplete()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -93,8 +99,12 @@ export function StatementResults({
                 <span className="font-medium text-right">{results.length}</span>
               </div>
             </div>
-            <Button className="w-full" onClick={handleImport}>
-              <Save className="w-4 h-4 mr-2" />
+            <Button className="w-full" onClick={handleImport} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               Confirmar Importação
             </Button>
           </CardContent>

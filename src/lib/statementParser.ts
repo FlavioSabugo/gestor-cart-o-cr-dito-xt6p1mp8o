@@ -13,23 +13,12 @@ export const categorizeTransaction = (
 ): TransactionCategory => {
   const lowerDesc = description.toLowerCase()
 
-  // First apply custom user rules
+  // First apply custom user rules from database mappings
   for (const rule of rules) {
     if (lowerDesc.includes(rule.keyword.toLowerCase())) {
       return rule.category
     }
   }
-
-  // Specific new categories
-  if (/(uber)/.test(lowerDesc)) return 'Uber'
-  if (/(farmacia|drogasil|pague menos|drogaria|pacheco|venancio|sao paulo)/.test(lowerDesc))
-    return 'Farmácias'
-  if (
-    /(netflix|spotify|amazon|aws|google|apple|internet|vivo|claro|tim|hbo|disney|prime)/.test(
-      lowerDesc,
-    )
-  )
-    return 'Assinaturas'
 
   // Fallbacks
   if (/(99|posto|shell|ipiranga|estacionamento|pedagio|conectar)/.test(lowerDesc))

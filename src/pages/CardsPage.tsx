@@ -1,14 +1,26 @@
+import { useState } from 'react'
 import { useFinance } from '@/stores/financeStore'
 import { VirtualCard } from '@/components/shared/VirtualCard'
 import { AddCardDialog } from '@/components/cards/AddCardDialog'
 import { EditCardDialog } from '@/components/cards/EditCardDialog'
 import { Button } from '@/components/ui/button'
-import { Trash2, FileUp, Edit } from 'lucide-react'
+import { Trash2, FileUp, Edit, Loader2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 
 export default function CardsPage() {
   const { cardsWithBalance, deleteCard } = useFinance()
   const navigate = useNavigate()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setDeletingId(id)
+    try {
+      await deleteCard(id)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="space-y-8 pb-8 animate-fade-in">
@@ -62,9 +74,14 @@ export default function CardsPage() {
                   variant="destructive"
                   size="icon"
                   className="rounded-full shadow-md"
-                  onClick={() => deleteCard(card.id)}
+                  disabled={deletingId === card.id}
+                  onClick={(e) => handleDelete(e, card.id)}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  {deletingId === card.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
 

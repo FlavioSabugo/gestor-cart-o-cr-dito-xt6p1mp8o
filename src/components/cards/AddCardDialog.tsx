@@ -18,12 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
 import { CARD_COLORS } from '@/lib/constants'
 
 export function AddCardDialog({ children }: { children?: React.ReactNode }) {
   const { addCard } = useFinance()
   const [open, setOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [name, setName] = useState('')
   const [brand, setBrand] = useState<CardBrand>('mastercard')
@@ -33,21 +34,26 @@ export function AddCardDialog({ children }: { children?: React.ReactNode }) {
   const [due, setDue] = useState('12')
   const [color, setColor] = useState(CARD_COLORS[0].value)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    addCard({
-      name,
-      brand,
-      limit: parseFloat(limit),
-      last4,
-      closingDate: parseInt(closing),
-      dueDate: parseInt(due),
-      color,
-    })
-    setOpen(false)
-    setName('')
-    setLimit('')
-    setLast4('')
+    setIsSubmitting(true)
+    try {
+      await addCard({
+        name,
+        brand,
+        limit: parseFloat(limit),
+        last4,
+        closingDate: parseInt(closing),
+        dueDate: parseInt(due),
+        color,
+      })
+      setOpen(false)
+      setName('')
+      setLimit('')
+      setLast4('')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -156,7 +162,8 @@ export function AddCardDialog({ children }: { children?: React.ReactNode }) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-4">
+          <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Criar Cartão
           </Button>
         </form>

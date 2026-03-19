@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Trash2, Search, Filter } from 'lucide-react'
+import { Trash2, Search, Filter, Loader2 } from 'lucide-react'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
 import { Badge } from '@/components/ui/badge'
 
@@ -26,6 +26,7 @@ export default function TransactionsPage() {
   const { transactions, cards, deleteTransaction } = useFinance()
   const [search, setSearch] = useState('')
   const [filterCard, setFilterCard] = useState('all')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const filteredTransactions = transactions.filter((t) => {
     const matchesSearch =
@@ -34,6 +35,15 @@ export default function TransactionsPage() {
     const matchesCard = filterCard === 'all' || t.cardId === filterCard
     return matchesSearch && matchesCard
   })
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    try {
+      await deleteTransaction(id)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
@@ -112,10 +122,15 @@ export default function TransactionsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 h-8 w-8 text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteTransaction(t.id)}
+                      className={`h-8 w-8 text-destructive hover:bg-destructive/10 ${deletingId === t.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                      disabled={deletingId === t.id}
+                      onClick={() => handleDelete(t.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deletingId === t.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>

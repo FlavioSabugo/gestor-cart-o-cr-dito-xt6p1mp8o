@@ -11,19 +11,35 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Trash2, Plus, SlidersHorizontal } from 'lucide-react'
+import { Trash2, Plus, SlidersHorizontal, Loader2 } from 'lucide-react'
 
 export default function RulesPage() {
   const { rules, addRule, deleteRule } = useFinance()
   const [keyword, setKeyword] = useState('')
   const [category, setCategory] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (keyword && category) {
-      addRule({ keyword, category })
-      setKeyword('')
-      setCategory('')
+      setIsSubmitting(true)
+      try {
+        await addRule({ keyword, category })
+        setKeyword('')
+        setCategory('')
+      } finally {
+        setIsSubmitting(false)
+      }
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    try {
+      await deleteRule(id)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -65,8 +81,13 @@ export default function RulesPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" /> Adicionar
+            <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
+              Adicionar
             </Button>
           </form>
         </CardContent>
@@ -88,8 +109,17 @@ export default function RulesPage() {
                   <TableCell className="font-medium">{rule.keyword}</TableCell>
                   <TableCell>{rule.category}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => deleteRule(rule.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(rule.id)}
+                      disabled={deletingId === rule.id}
+                    >
+                      {deletingId === rule.id ? (
+                        <Loader2 className="w-4 h-4 text-destructive animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>

@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Loader2 } from 'lucide-react'
 import { CARD_COLORS } from '@/lib/constants'
 
 export function EditCardDialog({
@@ -29,6 +30,7 @@ export function EditCardDialog({
 }) {
   const { updateCard } = useFinance()
   const [open, setOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [name, setName] = useState(card.name)
   const [brand, setBrand] = useState<CardBrand>(card.brand)
@@ -50,18 +52,23 @@ export function EditCardDialog({
     }
   }, [open, card])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    updateCard(card.id, {
-      name,
-      brand,
-      limit: parseFloat(limit),
-      last4,
-      closingDate: parseInt(closing),
-      dueDate: parseInt(due),
-      color,
-    })
-    setOpen(false)
+    setIsSubmitting(true)
+    try {
+      await updateCard(card.id, {
+        name,
+        brand,
+        limit: parseFloat(limit),
+        last4,
+        closingDate: parseInt(closing),
+        dueDate: parseInt(due),
+        color,
+      })
+      setOpen(false)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -155,7 +162,8 @@ export function EditCardDialog({
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-4">
+          <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Salvar Alterações
           </Button>
         </form>
