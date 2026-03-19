@@ -20,6 +20,8 @@ export interface Transaction {
   amount: number
   category: TransactionCategory
   cardId: string
+  billingMonth?: string
+  billingYear?: string
   installments?: {
     current: number
     total: number
@@ -38,6 +40,8 @@ export interface UploadHistory {
   uploadDate: string
   cardId: string
   transactionCount: number
+  billingMonth?: string
+  billingYear?: string
 }
 
 export interface CategorizationRule {

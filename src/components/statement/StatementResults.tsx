@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { ParsedTransaction } from '@/lib/statementParser'
 import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -7,13 +7,6 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -21,17 +14,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Save, AlertCircle } from 'lucide-react'
+import { Save } from 'lucide-react'
 
 interface StatementResultsProps {
   results: ParsedTransaction[]
   file: File
+  cardId: string
+  billingMonth: string
+  billingYear: string
   onImportComplete: () => void
 }
 
-export function StatementResults({ results, file, onImportComplete }: StatementResultsProps) {
+export function StatementResults({
+  results,
+  file,
+  cardId,
+  billingMonth,
+  billingYear,
+  onImportComplete,
+}: StatementResultsProps) {
   const { cards, addTransactions, addUpload } = useFinance()
-  const [selectedCard, setSelectedCard] = useState<string>('')
+  const card = cards.find((c) => c.id === cardId)
 
   const { totals, grandTotal } = useMemo(() => {
     const categoryTotals: Record<string, number> = {}
@@ -46,15 +49,21 @@ export function StatementResults({ results, file, onImportComplete }: StatementR
   const sortedCategories = Object.entries(totals).sort((a, b) => b[1] - a[1])
 
   const handleImport = () => {
-    if (!selectedCard) return
-    const newTransactions = results.map((t) => ({ ...t, cardId: selectedCard }))
+    const newTransactions = results.map((t) => ({
+      ...t,
+      cardId,
+      billingMonth,
+      billingYear,
+    }))
     addTransactions(newTransactions)
 
     addUpload({
       filename: file.name,
       uploadDate: new Date().toISOString(),
-      cardId: selectedCard,
+      cardId,
       transactionCount: results.length,
+      billingMonth,
+      billingYear,
     })
 
     onImportComplete()
@@ -68,28 +77,26 @@ export function StatementResults({ results, file, onImportComplete }: StatementR
             <CardTitle className="text-lg">Salvar Transações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Select value={selectedCard} onValueChange={setSelectedCard}>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Selecione o cartão de destino" />
-              </SelectTrigger>
-              <SelectContent>
-                {cards.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name} (•••• {c.last4})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button className="w-full" onClick={handleImport} disabled={!selectedCard}>
+            <div className="bg-background/50 border p-4 rounded-lg space-y-3 mb-4 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Cartão Destino:</span>
+                <span className="font-medium text-right">{card?.name || 'Desconhecido'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Mês/Ano Fatura:</span>
+                <span className="font-medium text-right">
+                  {billingMonth}/{billingYear}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Transações:</span>
+                <span className="font-medium text-right">{results.length}</span>
+              </div>
+            </div>
+            <Button className="w-full" onClick={handleImport}>
               <Save className="w-4 h-4 mr-2" />
-              Importar {results.length} Despesas
+              Confirmar Importação
             </Button>
-            {!selectedCard && (
-              <p className="text-xs flex items-center text-muted-foreground mt-2">
-                <AlertCircle className="w-3 h-3 mr-1" />
-                Selecione um cartão para habilitar o botão
-              </p>
-            )}
           </CardContent>
         </Card>
 

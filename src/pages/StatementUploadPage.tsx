@@ -1,18 +1,48 @@
 import { useState } from 'react'
 import { useFinance } from '@/stores/financeStore'
-import { FileUp, Loader2, ArrowLeft } from 'lucide-react'
+import { FileUp, Loader2, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UploadDropzone } from '@/components/statement/UploadDropzone'
 import { StatementResults } from '@/components/statement/StatementResults'
 import { mockParsePDF, ParsedTransaction } from '@/lib/statementParser'
 import { useNavigate } from 'react-router-dom'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+
+const MONTHS = [
+  { value: '01', label: 'Janeiro' },
+  { value: '02', label: 'Fevereiro' },
+  { value: '03', label: 'Março' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Maio' },
+  { value: '06', label: 'Junho' },
+  { value: '07', label: 'Julho' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+]
 
 export default function StatementUploadPage() {
   const navigate = useNavigate()
-  const { rules } = useFinance()
+  const { rules, cards } = useFinance()
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState<ParsedTransaction[] | null>(null)
+
+  const currentYear = new Date().getFullYear()
+  const YEARS = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString())
+
+  const [selectedCard, setSelectedCard] = useState<string>('')
+  const [selectedMonth, setSelectedMonth] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<string>('')
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile)
@@ -38,6 +68,8 @@ export default function StatementUploadPage() {
     navigate('/transactions')
   }
 
+  const isFormValid = selectedCard !== '' && selectedMonth !== '' && selectedYear !== ''
+
   return (
     <div className="space-y-8 pb-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -57,8 +89,71 @@ export default function StatementUploadPage() {
       </div>
 
       {!file && !isProcessing && !results && (
-        <div className="max-w-3xl mx-auto pt-8">
-          <UploadDropzone onFileSelect={handleFileSelect} />
+        <div className="max-w-4xl mx-auto space-y-8 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 border rounded-xl bg-card text-card-foreground shadow-subtle">
+            <div className="space-y-2">
+              <Label>Cartão de Crédito</Label>
+              <Select value={selectedCard} onValueChange={setSelectedCard}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cartão" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cards.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} (•••• {c.last4})
+                    </SelectItem>
+                  ))}
+                  {cards.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      Nenhum cartão cadastrado
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mês da Fatura</Label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Ano da Fatura</Label>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEARS.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <UploadDropzone onFileSelect={handleFileSelect} disabled={!isFormValid} />
+            {!isFormValid && (
+              <p className="text-sm flex items-center justify-center text-muted-foreground bg-muted/50 p-3 rounded-lg border border-dashed">
+                <AlertCircle className="w-4 h-4 mr-2 text-primary" />
+                Selecione o cartão, mês e ano para habilitar o envio do arquivo.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -79,7 +174,14 @@ export default function StatementUploadPage() {
       )}
 
       {results && file && !isProcessing && (
-        <StatementResults results={results} file={file} onImportComplete={handleImportComplete} />
+        <StatementResults
+          results={results}
+          file={file}
+          cardId={selectedCard}
+          billingMonth={selectedMonth}
+          billingYear={selectedYear}
+          onImportComplete={handleImportComplete}
+        />
       )}
     </div>
   )
