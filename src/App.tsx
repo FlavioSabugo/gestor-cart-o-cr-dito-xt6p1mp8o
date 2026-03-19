@@ -11,6 +11,7 @@ import CardsPage from './pages/CardsPage'
 import TransactionsPage from './pages/TransactionsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
+import StatementUploadPage from './pages/StatementUploadPage'
 
 const App = () => (
   <FinanceProvider>
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/statement" element={<StatementUploadPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

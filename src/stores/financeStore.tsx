@@ -8,6 +8,7 @@ interface FinanceState {
   cardsWithBalance: CardWithBalance[]
   addCard: (card: Omit<CreditCard, 'id'>) => void
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void
+  addTransactions: (transactions: Omit<Transaction, 'id'>[]) => void
   deleteTransaction: (id: string) => void
   deleteCard: (id: string) => void
   globalLimit: number
@@ -83,38 +84,6 @@ const MOCK_TRANSACTIONS: Transaction[] = [
     category: 'Serviços',
     cardId: '1',
   },
-  {
-    id: 't5',
-    date: new Date(Date.now() - 86400000 * 4).toISOString(),
-    description: 'Posto Shell',
-    amount: 200.0,
-    category: 'Transporte',
-    cardId: '3',
-  },
-  {
-    id: 't6',
-    date: new Date(Date.now() - 86400000 * 5).toISOString(),
-    description: 'Farmácia Pague Menos',
-    amount: 85.4,
-    category: 'Saúde',
-    cardId: '2',
-  },
-  {
-    id: 't7',
-    date: new Date(Date.now() - 86400000 * 10).toISOString(),
-    description: 'Amazon AWS',
-    amount: 150.0,
-    category: 'Serviços',
-    cardId: '3',
-  },
-  {
-    id: 't8',
-    date: new Date(Date.now() - 86400000 * 15).toISOString(),
-    description: 'Ingressos Cinema',
-    amount: 90.0,
-    category: 'Lazer',
-    cardId: '1',
-  },
 ]
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
@@ -150,6 +119,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Despesa registrada', description: `${transaction.description} foi salva.` })
   }
 
+  const addTransactions = (newTransactions: Omit<Transaction, 'id'>[]) => {
+    const txsWithIds = newTransactions.map((t) => ({
+      ...t,
+      id: Math.random().toString(36).substr(2, 9),
+    }))
+    setTransactions((prev) => [...txsWithIds, ...prev])
+    toast({
+      title: 'Fatura Importada',
+      description: `${newTransactions.length} despesas foram registradas com sucesso.`,
+    })
+  }
+
   const deleteTransaction = (id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id))
     toast({ title: 'Despesa removida' })
@@ -169,6 +150,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         cardsWithBalance,
         addCard,
         addTransaction,
+        addTransactions,
         deleteTransaction,
         deleteCard,
         globalLimit,

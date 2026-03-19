@@ -1,5 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CreditCard, ReceiptText, PieChart, Settings, Wallet } from 'lucide-react'
+import {
+  LayoutDashboard,
+  CreditCard,
+  ReceiptText,
+  PieChart,
+  Settings,
+  Wallet,
+  FileUp,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +22,7 @@ const mainNavItems = [
   { title: 'Início', icon: LayoutDashboard, path: '/' },
   { title: 'Meus Cartões', icon: CreditCard, path: '/cards' },
   { title: 'Transações', icon: ReceiptText, path: '/transactions' },
+  { title: 'Importar Fatura', icon: FileUp, path: '/statement' },
   { title: 'Análises', icon: PieChart, path: '/analytics' },
 ]
 

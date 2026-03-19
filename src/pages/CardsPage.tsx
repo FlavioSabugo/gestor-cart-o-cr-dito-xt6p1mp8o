@@ -2,19 +2,27 @@ import { useFinance } from '@/stores/financeStore'
 import { VirtualCard } from '@/components/shared/VirtualCard'
 import { AddCardDialog } from '@/components/cards/AddCardDialog'
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-react'
+import { Trash2, FileUp } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function CardsPage() {
   const { cardsWithBalance, deleteCard } = useFinance()
 
   return (
     <div className="space-y-8 pb-8 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Meus Cartões</h2>
           <p className="text-muted-foreground">Gerencie seus limites e dias de vencimento.</p>
         </div>
-        <AddCardDialog />
+        <div className="flex items-center gap-3">
+          <Button variant="outline" asChild className="hidden sm:flex">
+            <Link to="/statement">
+              <FileUp className="w-4 h-4 mr-2" /> Importar Fatura
+            </Link>
+          </Button>
+          <AddCardDialog />
+        </div>
       </div>
 
       {cardsWithBalance.length === 0 ? (
@@ -28,7 +36,7 @@ export default function CardsPage() {
           <p className="text-muted-foreground mt-2 max-w-sm">
             Adicione seu primeiro cartão de crédito para começar a gerenciar seus gastos.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col gap-3">
             <AddCardDialog />
           </div>
         </div>
