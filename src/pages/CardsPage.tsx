@@ -1,12 +1,14 @@
 import { useFinance } from '@/stores/financeStore'
 import { VirtualCard } from '@/components/shared/VirtualCard'
 import { AddCardDialog } from '@/components/cards/AddCardDialog'
+import { EditCardDialog } from '@/components/cards/EditCardDialog'
 import { Button } from '@/components/ui/button'
-import { Trash2, FileUp } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Trash2, FileUp, Edit } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function CardsPage() {
   const { cardsWithBalance, deleteCard } = useFinance()
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-8 pb-8 animate-fade-in">
@@ -34,7 +36,7 @@ export default function CardsPage() {
           />
           <h3 className="text-xl font-semibold">Nenhum cartão encontrado</h3>
           <p className="text-muted-foreground mt-2 max-w-sm">
-            Adicione seu primeiro cartão de crédito para começar a gerenciar seus gastos.
+            Adicione seu primeiro cartão de crédito para começar a gerenciar seus gastos reais.
           </p>
           <div className="mt-6 flex flex-col gap-3">
             <AddCardDialog />
@@ -44,18 +46,28 @@ export default function CardsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {cardsWithBalance.map((card) => (
             <div key={card.id} className="relative group">
-              <VirtualCard card={card} className="w-full max-w-md mx-auto" />
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-full z-20 shadow-md"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  deleteCard(card.id)
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <VirtualCard
+                card={card}
+                className="w-full max-w-md mx-auto"
+                onClick={() => navigate(`/cards/${card.id}`)}
+              />
+
+              <div className="absolute -top-3 -right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <EditCardDialog card={card}>
+                  <Button variant="secondary" size="icon" className="rounded-full shadow-md">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </EditCardDialog>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="rounded-full shadow-md"
+                  onClick={() => deleteCard(card.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+
               <div className="mt-4 px-2 space-y-2 text-sm max-w-md mx-auto">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Limite Total:</span>

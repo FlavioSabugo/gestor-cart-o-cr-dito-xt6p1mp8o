@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFinance } from '@/stores/financeStore'
 import { FileUp, Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UploadDropzone } from '@/components/statement/UploadDropzone'
@@ -8,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function StatementUploadPage() {
   const navigate = useNavigate()
+  const { rules } = useFinance()
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState<ParsedTransaction[] | null>(null)
@@ -17,12 +19,11 @@ export default function StatementUploadPage() {
     setIsProcessing(true)
 
     try {
-      // Simulate PDF parsing and extraction
-      const extractedData = await mockParsePDF(selectedFile)
+      // Simulate PDF parsing and extraction using active custom rules
+      const extractedData = await mockParsePDF(selectedFile, rules)
       setResults(extractedData)
     } catch (error) {
       console.error('Failed to parse PDF', error)
-      // Handle error visually if needed
     } finally {
       setIsProcessing(false)
     }
@@ -45,7 +46,7 @@ export default function StatementUploadPage() {
             <FileUp className="w-6 h-6 text-primary" /> Importar Fatura PDF
           </h2>
           <p className="text-muted-foreground">
-            O sistema extrai as despesas e as categoriza automaticamente para você.
+            Extração automática aplicando suas regras de categorização.
           </p>
         </div>
         {results && (
@@ -70,15 +71,15 @@ export default function StatementUploadPage() {
           <div className="text-center space-y-2">
             <h3 className="text-xl font-semibold">Analisando o documento...</h3>
             <p className="text-muted-foreground max-w-sm">
-              Lendo transações, identificando valores e aplicando inteligência de categorização no
+              Lendo transações, identificando valores e aplicando suas regras personalizadas no
               arquivo {file?.name}.
             </p>
           </div>
         </div>
       )}
 
-      {results && !isProcessing && (
-        <StatementResults results={results} onImportComplete={handleImportComplete} />
+      {results && file && !isProcessing && (
+        <StatementResults results={results} file={file} onImportComplete={handleImportComplete} />
       )}
     </div>
   )

@@ -1,16 +1,28 @@
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react'
-import { CreditCard, Transaction, CardWithBalance } from '@/types/finance'
+import {
+  CreditCard,
+  Transaction,
+  CardWithBalance,
+  UploadHistory,
+  CategorizationRule,
+} from '@/types/finance'
 import { toast } from '@/hooks/use-toast'
 
 interface FinanceState {
   cards: CreditCard[]
   transactions: Transaction[]
   cardsWithBalance: CardWithBalance[]
+  rules: CategorizationRule[]
+  uploads: UploadHistory[]
   addCard: (card: Omit<CreditCard, 'id'>) => void
+  updateCard: (id: string, card: Omit<CreditCard, 'id'>) => void
+  deleteCard: (id: string) => void
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void
   addTransactions: (transactions: Omit<Transaction, 'id'>[]) => void
   deleteTransaction: (id: string) => void
-  deleteCard: (id: string) => void
+  addRule: (rule: Omit<CategorizationRule, 'id'>) => void
+  deleteRule: (id: string) => void
+  addUpload: (upload: Omit<UploadHistory, 'id'>) => void
   globalLimit: number
   globalBalance: number
   globalAvailable: number
@@ -18,77 +30,11 @@ interface FinanceState {
 
 const FinanceContext = createContext<FinanceState | undefined>(undefined)
 
-const MOCK_CARDS: CreditCard[] = [
-  {
-    id: '1',
-    name: 'Nubank Principal',
-    brand: 'mastercard',
-    limit: 8000,
-    closingDate: 5,
-    dueDate: 12,
-    color: 'bg-gradient-to-br from-purple-600 to-indigo-700',
-    last4: '4321',
-  },
-  {
-    id: '2',
-    name: 'Itaú Personalité',
-    brand: 'visa',
-    limit: 15000,
-    closingDate: 15,
-    dueDate: 25,
-    color: 'bg-gradient-to-br from-orange-500 to-amber-600',
-    last4: '8876',
-  },
-  {
-    id: '3',
-    name: 'C6 Black',
-    brand: 'mastercard',
-    limit: 25000,
-    closingDate: 1,
-    dueDate: 10,
-    color: 'bg-gradient-to-br from-gray-900 to-black',
-    last4: '0012',
-  },
-]
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: 't1',
-    date: new Date().toISOString(),
-    description: 'Mercado Extra',
-    amount: 450.5,
-    category: 'Alimentação',
-    cardId: '1',
-  },
-  {
-    id: 't2',
-    date: new Date(Date.now() - 86400000).toISOString(),
-    description: 'Uber',
-    amount: 25.9,
-    category: 'Transporte',
-    cardId: '1',
-  },
-  {
-    id: 't3',
-    date: new Date(Date.now() - 86400000 * 2).toISOString(),
-    description: 'Restaurante Outback',
-    amount: 320.0,
-    category: 'Alimentação',
-    cardId: '2',
-  },
-  {
-    id: 't4',
-    date: new Date(Date.now() - 86400000 * 3).toISOString(),
-    description: 'Netflix',
-    amount: 39.9,
-    category: 'Serviços',
-    cardId: '1',
-  },
-]
-
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const [cards, setCards] = useState<CreditCard[]>(MOCK_CARDS)
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS)
+  const [cards, setCards] = useState<CreditCard[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [rules, setRules] = useState<CategorizationRule[]>([])
+  const [uploads, setUploads] = useState<UploadHistory[]>([])
 
   const cardsWithBalance = useMemo(() => {
     return cards.map((card) => {
@@ -111,6 +57,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const newCard = { ...card, id: Math.random().toString(36).substr(2, 9) }
     setCards((prev) => [...prev, newCard])
     toast({ title: 'Cartão adicionado', description: `${card.name} foi adicionado com sucesso.` })
+  }
+
+  const updateCard = (id: string, updated: Omit<CreditCard, 'id'>) => {
+    setCards((prev) => prev.map((c) => (c.id === id ? { ...updated, id } : c)))
+    toast({
+      title: 'Cartão atualizado',
+      description: `As informações de ${updated.name} foram salvas.`,
+    })
+  }
+
+  const deleteCard = (id: string) => {
+    setCards((prev) => prev.filter((c) => c.id !== id))
+    setTransactions((prev) => prev.filter((t) => t.cardId !== id))
+    toast({ title: 'Cartão removido' })
   }
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
@@ -136,10 +96,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Despesa removida' })
   }
 
-  const deleteCard = (id: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== id))
-    setTransactions((prev) => prev.filter((t) => t.cardId !== id))
-    toast({ title: 'Cartão removido' })
+  const addRule = (rule: Omit<CategorizationRule, 'id'>) => {
+    setRules((prev) => [...prev, { ...rule, id: Math.random().toString(36).substr(2, 9) }])
+    toast({ title: 'Regra adicionada', description: `Palavra-chave: ${rule.keyword}` })
+  }
+
+  const deleteRule = (id: string) => {
+    setRules((prev) => prev.filter((r) => r.id !== id))
+    toast({ title: 'Regra removida' })
+  }
+
+  const addUpload = (upload: Omit<UploadHistory, 'id'>) => {
+    setUploads((prev) => [{ ...upload, id: Math.random().toString(36).substr(2, 9) }, ...prev])
   }
 
   return (
@@ -148,11 +116,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         cards,
         transactions,
         cardsWithBalance,
+        rules,
+        uploads,
         addCard,
+        updateCard,
+        deleteCard,
         addTransaction,
         addTransactions,
         deleteTransaction,
-        deleteCard,
+        addRule,
+        deleteRule,
+        addUpload,
         globalLimit,
         globalBalance,
         globalAvailable,

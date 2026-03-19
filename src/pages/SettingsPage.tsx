@@ -4,6 +4,8 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from '@/hooks/use-toast'
+import { Link } from 'react-router-dom'
+import { SlidersHorizontal, FileText } from 'lucide-react'
 
 export default function SettingsPage() {
   return (
@@ -38,6 +40,27 @@ export default function SettingsPage() {
 
       <Card className="shadow-subtle">
         <CardHeader>
+          <CardTitle>Gerenciamento de Dados</CardTitle>
+          <CardDescription>Acesse painéis de controle avançados.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button variant="outline" className="w-full justify-start font-medium" asChild>
+            <Link to="/rules">
+              <SlidersHorizontal className="w-4 h-4 mr-2 text-primary" />
+              Regras de Categorização Automática
+            </Link>
+          </Button>
+          <Button variant="outline" className="w-full justify-start font-medium" asChild>
+            <Link to="/history">
+              <FileText className="w-4 h-4 mr-2 text-primary" />
+              Histórico de Faturas Importadas
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-subtle">
+        <CardHeader>
           <CardTitle>Notificações</CardTitle>
           <CardDescription>Escolha como deseja ser avisado.</CardDescription>
         </CardHeader>
@@ -51,9 +74,7 @@ export default function SettingsPage() {
             </div>
             <Switch
               defaultChecked
-              onCheckedChange={(v) => {
-                if (v) toast({ title: 'Notificações ativadas' })
-              }}
+              onCheckedChange={(v) => v && toast({ title: 'Notificações ativadas' })}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -65,15 +86,6 @@ export default function SettingsPage() {
             </div>
             <Switch />
           </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-base">Limite Próximo</Label>
-              <p className="text-sm text-muted-foreground">
-                Avisar quando usar 80% do limite de um cartão.
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
         </CardContent>
       </Card>
 
@@ -82,7 +94,7 @@ export default function SettingsPage() {
           onClick={() =>
             toast({
               title: 'Configurações salvas',
-              description: 'Suas preferências foram atualizadas com sucesso.',
+              description: 'Suas preferências foram atualizadas.',
             })
           }
         >

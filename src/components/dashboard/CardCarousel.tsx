@@ -1,11 +1,12 @@
 import { useFinance } from '@/stores/financeStore'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
 import { VirtualCard } from '../shared/VirtualCard'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 
 export function CardCarousel() {
   const { cardsWithBalance } = useFinance()
+  const navigate = useNavigate()
 
   return (
     <div className="w-full">
@@ -16,17 +17,11 @@ export function CardCarousel() {
         </Link>
       </div>
 
-      <Carousel
-        opts={{
-          align: 'start',
-          loop: false,
-        }}
-        className="w-full"
-      >
+      <Carousel opts={{ align: 'start', loop: false }} className="w-full">
         <CarouselContent className="-ml-2 md:-ml-4">
           {cardsWithBalance.map((card) => (
             <CarouselItem key={card.id} className="pl-2 md:pl-4 basis-auto">
-              <VirtualCard card={card} />
+              <VirtualCard card={card} onClick={() => navigate(`/cards/${card.id}`)} />
             </CarouselItem>
           ))}
           <CarouselItem className="pl-2 md:pl-4 basis-auto">

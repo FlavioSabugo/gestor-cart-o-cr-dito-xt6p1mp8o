@@ -25,11 +25,12 @@ import { Save, AlertCircle } from 'lucide-react'
 
 interface StatementResultsProps {
   results: ParsedTransaction[]
+  file: File
   onImportComplete: () => void
 }
 
-export function StatementResults({ results, onImportComplete }: StatementResultsProps) {
-  const { cards, addTransactions } = useFinance()
+export function StatementResults({ results, file, onImportComplete }: StatementResultsProps) {
+  const { cards, addTransactions, addUpload } = useFinance()
   const [selectedCard, setSelectedCard] = useState<string>('')
 
   const { totals, grandTotal } = useMemo(() => {
@@ -46,42 +47,22 @@ export function StatementResults({ results, onImportComplete }: StatementResults
 
   const handleImport = () => {
     if (!selectedCard) return
-    const newTransactions = results.map((t) => ({
-      ...t,
-      cardId: selectedCard,
-    }))
+    const newTransactions = results.map((t) => ({ ...t, cardId: selectedCard }))
     addTransactions(newTransactions)
+
+    addUpload({
+      filename: file.name,
+      uploadDate: new Date().toISOString(),
+      cardId: selectedCard,
+      transactionCount: results.length,
+    })
+
     onImportComplete()
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
       <div className="lg:col-span-1 space-y-6">
-        <Card className="shadow-subtle">
-          <CardHeader>
-            <CardTitle>Resumo por Categoria</CardTitle>
-            <CardDescription>Distribuição automática dos gastos</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg mb-6">
-              <span className="text-sm text-muted-foreground">Total Extraído</span>
-              <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>
-            </div>
-
-            <div className="space-y-4">
-              {sortedCategories.map(([cat, amount]) => (
-                <div key={cat} className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-muted-foreground">{cat}</span>
-                    <span className="font-medium">{formatCurrency(amount)}</span>
-                  </div>
-                  <Progress value={(amount / grandTotal) * 100} className="h-2" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="shadow-subtle border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-lg">Salvar Transações</CardTitle>
@@ -111,12 +92,37 @@ export function StatementResults({ results, onImportComplete }: StatementResults
             )}
           </CardContent>
         </Card>
+
+        <Card className="shadow-subtle">
+          <CardHeader>
+            <CardTitle>Resumo por Categoria</CardTitle>
+            <CardDescription>Distribuição aplicada com regras</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg mb-6">
+              <span className="text-sm text-muted-foreground">Total Extraído</span>
+              <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>
+            </div>
+
+            <div className="space-y-4">
+              {sortedCategories.map(([cat, amount]) => (
+                <div key={cat} className="space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-muted-foreground">{cat}</span>
+                    <span className="font-medium">{formatCurrency(amount)}</span>
+                  </div>
+                  <Progress value={(amount / grandTotal) * 100} className="h-2" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="lg:col-span-2 shadow-subtle flex flex-col h-full">
         <CardHeader>
           <CardTitle>Transações Extraídas</CardTitle>
-          <CardDescription>Verifique os dados lidos do seu arquivo PDF.</CardDescription>
+          <CardDescription>Arquivo: {file.name}</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 overflow-auto p-0 px-6 pb-6">
           <div className="rounded-md border h-[500px] overflow-auto">
@@ -125,7 +131,7 @@ export function StatementResults({ results, onImportComplete }: StatementResults
                 <TableRow>
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria (Auto)</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>

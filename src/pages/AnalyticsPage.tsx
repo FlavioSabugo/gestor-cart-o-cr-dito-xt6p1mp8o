@@ -13,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts'
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
+import { MonthlyEvolutionChart } from '@/components/analytics/MonthlyEvolutionChart'
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -48,7 +48,7 @@ export default function AnalyticsPage() {
       acc[t.cardId] = (acc[t.cardId] || 0) + t.amount
     })
     return Object.keys(acc).map((key) => ({
-      name: cards.find((c) => c.id === key)?.name || 'Unknown',
+      name: cards.find((c) => c.id === key)?.name || 'Removido',
       total: acc[key],
     }))
   }, [transactions, cards])
@@ -128,6 +128,8 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <MonthlyEvolutionChart />
     </div>
   )
 }

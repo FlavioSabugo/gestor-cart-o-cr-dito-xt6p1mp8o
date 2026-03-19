@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useFinance } from '@/stores/financeStore'
-import { TransactionCategory } from '@/types/finance'
 import {
   Dialog,
   DialogContent,
@@ -19,27 +18,26 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus } from 'lucide-react'
-
-const CATEGORIES: TransactionCategory[] = [
-  'Alimentação',
-  'Transporte',
-  'Lazer',
-  'Saúde',
-  'Educação',
-  'Compras',
-  'Serviços',
-  'Outros',
-]
+import { STANDARD_CATEGORIES } from '@/lib/constants'
 
 export function AddTransactionDialog() {
-  const { cards, addTransaction } = useFinance()
+  const { cards, transactions, rules, addTransaction } = useFinance()
   const [open, setOpen] = useState(false)
 
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState<TransactionCategory>('Outros')
+  const [category, setCategory] = useState('Outros')
   const [cardId, setCardId] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+
+  // Combine standard, rule and existing categories to allow flexibility
+  const allCategories = Array.from(
+    new Set([
+      ...STANDARD_CATEGORIES,
+      ...transactions.map((t) => t.category),
+      ...rules.map((r) => r.category),
+    ]),
+  ).sort()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +52,6 @@ export function AddTransactionDialog() {
     })
 
     setOpen(false)
-    // Reset
     setDescription('')
     setAmount('')
     setCategory('Outros')
@@ -110,9 +107,11 @@ export function AddTransactionDialog() {
 
           <div className="space-y-2">
             <Label>Cartão</Label>
-            <Select value={cardId} onValueChange={setCardId} required>
+            <Select value={cardId} onValueChange={setCardId} required disabled={cards.length === 0}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um cartão" />
+                <SelectValue
+                  placeholder={cards.length > 0 ? 'Selecione um cartão' : 'Nenhum cartão'}
+                />
               </SelectTrigger>
               <SelectContent>
                 {cards.map((c) => (
@@ -126,16 +125,12 @@ export function AddTransactionDialog() {
 
           <div className="space-y-2">
             <Label>Categoria</Label>
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(v as TransactionCategory)}
-              required
-            >
+            <Select value={category} onValueChange={setCategory} required>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
+                {allCategories.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
                   </SelectItem>
@@ -144,7 +139,7 @@ export function AddTransactionDialog() {
             </Select>
           </div>
 
-          <Button type="submit" className="w-full mt-4">
+          <Button type="submit" className="w-full mt-4" disabled={cards.length === 0}>
             Salvar Transação
           </Button>
         </form>

@@ -1,5 +1,7 @@
 export type CardBrand = 'mastercard' | 'visa' | 'amex' | 'elo'
 
+export type TransactionCategory = string
+
 export interface CreditCard {
   id: string
   name: string
@@ -10,16 +12,6 @@ export interface CreditCard {
   color: string
   last4: string
 }
-
-export type TransactionCategory =
-  | 'Alimentação'
-  | 'Transporte'
-  | 'Lazer'
-  | 'Saúde'
-  | 'Educação'
-  | 'Compras'
-  | 'Serviços'
-  | 'Outros'
 
 export interface Transaction {
   id: string
@@ -38,4 +30,18 @@ export interface CardWithBalance extends CreditCard {
   balance: number
   availableLimit: number
   usagePercentage: number
+}
+
+export interface UploadHistory {
+  id: string
+  filename: string
+  uploadDate: string
+  cardId: string
+  transactionCount: number
+}
+
+export interface CategorizationRule {
+  id: string
+  keyword: string
+  category: TransactionCategory
 }
