@@ -6,14 +6,24 @@ import { EditCardDialog } from '@/components/cards/EditCardDialog'
 import { Button } from '@/components/ui/button'
 import { Trash2, FileUp, Edit, Loader2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 export default function CardsPage() {
   const { cardsWithBalance, deleteCard } = useFinance()
   const navigate = useNavigate()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
+  const handleDelete = async (id: string) => {
     setDeletingId(id)
     try {
       await deleteCard(id)
@@ -70,19 +80,48 @@ export default function CardsPage() {
                     <Edit className="w-4 h-4" />
                   </Button>
                 </EditCardDialog>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="rounded-full shadow-md"
-                  disabled={deletingId === card.id}
-                  onClick={(e) => handleDelete(e, card.id)}
-                >
-                  {deletingId === card.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="rounded-full shadow-md"
+                      disabled={deletingId === card.id}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {deletingId === card.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir cartão?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza de que deseja excluir o cartão <strong>{card.name}</strong>?
+                        Esta ação não pode ser desfeita e removerá todas as transações associadas a
+                        ele.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                        Cancelar
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(card.id)
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Sim, excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
 
               <div className="mt-4 px-2 space-y-2 text-sm max-w-md mx-auto">

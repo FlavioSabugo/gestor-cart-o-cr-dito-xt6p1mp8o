@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -11,9 +11,21 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatDate } from '@/lib/formatters'
-import { ArrowLeft } from 'lucide-react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { ArrowLeft, Edit, Trash2, Loader2 } from 'lucide-react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { VirtualCard } from '@/components/shared/VirtualCard'
+import { EditCardDialog } from '@/components/cards/EditCardDialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -25,7 +37,10 @@ const COLORS = [
 
 export default function CardDetailsPage() {
   const { id } = useParams()
-  const { cardsWithBalance, transactions } = useFinance()
+  const navigate = useNavigate()
+  const { cardsWithBalance, transactions, deleteCard } = useFinance()
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const card = cardsWithBalance.find((c) => c.id === id)
 
   const cardTransactions = useMemo(
@@ -65,6 +80,17 @@ export default function CardDetailsPage() {
       .sort((a, b) => b.value - a.value)
   }, [monthTransactions])
 
+  const handleDelete = async () => {
+    if (!card) return
+    setIsDeleting(true)
+    try {
+      await deleteCard(card.id)
+      navigate('/cards')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (!card)
     return <div className="p-8 text-center text-muted-foreground">Cartão não encontrado.</div>
 
@@ -80,15 +106,57 @@ export default function CardDetailsPage() {
 
   return (
     <div className="space-y-8 pb-8 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link to="/cards">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Fatura do Cartão</h2>
-          <p className="text-muted-foreground">Acompanhe seus gastos mês a mês.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/cards">
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Fatura do Cartão</h2>
+            <p className="text-muted-foreground">Acompanhe seus gastos mês a mês.</p>
+          </div>
+        </div>
+
+        <div className="sm:ml-auto flex items-center gap-2">
+          <EditCardDialog card={card}>
+            <Button variant="outline" size="sm">
+              <Edit className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+          </EditCardDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={isDeleting}>
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Excluir
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir cartão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza de que deseja excluir o cartão <strong>{card.name}</strong>? Esta ação
+                  não pode ser desfeita e removerá todas as transações associadas a ele.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sim, excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
