@@ -1,6 +1,6 @@
 import { CreditCard, Transaction, CategorizationRule, UploadHistory } from '@/types/finance'
 
-const DB_KEY = 'finance_db_v3'
+const DB_KEY = 'finance_db_v4' // Bumped version to force zero-state evaluation
 
 interface Database {
   cards: CreditCard[]
@@ -10,7 +10,7 @@ interface Database {
 }
 
 const DEFAULT_RULES: CategorizationRule[] = [
-  { id: 'r1', keyword: 'uber', category: 'Uber' },
+  { id: 'r1', keyword: 'uber', category: 'Transporte' },
   { id: 'r2', keyword: '99app', category: 'Transporte' },
   { id: 'r3', keyword: 'farmacia', category: 'Farmácias' },
   { id: 'r4', keyword: 'drogasil', category: 'Farmácias' },
@@ -21,24 +21,15 @@ const DEFAULT_RULES: CategorizationRule[] = [
   { id: 'r9', keyword: 'posto', category: 'Combustível' },
   { id: 'r10', keyword: 'shell', category: 'Combustível' },
   { id: 'r11', keyword: 'ipiranga', category: 'Combustível' },
+  { id: 'r12', keyword: 'metrô', category: 'Transporte' },
+  { id: 'r13', keyword: 'metro', category: 'Transporte' },
 ]
-
-const MOCK_CARD: CreditCard = {
-  id: 'c1',
-  name: 'Cartão Principal',
-  brand: 'mastercard',
-  limit: 5000,
-  closingDate: 5,
-  dueDate: 12,
-  color: 'bg-gradient-to-br from-purple-600 to-indigo-700',
-  last4: '1234',
-}
 
 const getDb = (): Database => {
   const data = localStorage.getItem(DB_KEY)
   if (data) return JSON.parse(data)
   return {
-    cards: [MOCK_CARD],
+    cards: [], // Start with empty state to accurately reflect financial state when no card is configured
     transactions: [],
     rules: DEFAULT_RULES,
     uploads: [],

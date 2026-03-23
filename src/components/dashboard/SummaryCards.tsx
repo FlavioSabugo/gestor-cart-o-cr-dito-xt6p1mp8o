@@ -7,6 +7,7 @@ import { MONTHS } from '@/lib/constants'
 
 export function SummaryCards() {
   const {
+    cards,
     globalBalance,
     globalAvailable,
     globalLimit,
@@ -15,6 +16,7 @@ export function SummaryCards() {
     selectedYear,
   } = useFinance()
 
+  const hasCards = cards.length > 0
   const usagePercent = globalLimit > 0 ? (globalBalance / globalLimit) * 100 : 0
   const monthLabel = MONTHS.find((m) => m.value === selectedMonth)?.label || selectedMonth
 
@@ -43,11 +45,11 @@ export function SummaryCards() {
             </div>
           </div>
           <div className="text-3xl font-bold tabular-nums tracking-tight">
-            {formatCurrency(globalBalance)}
+            {hasCards ? formatCurrency(globalBalance) : 'R$ 0,00'}
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Progress value={usagePercent} className="h-2 flex-1" />
-            <span>{usagePercent.toFixed(0)}% do limite total</span>
+            <span>{hasCards ? `${usagePercent.toFixed(0)}% do limite total` : 'Sem dados'}</span>
           </div>
         </CardContent>
       </Card>
@@ -61,10 +63,12 @@ export function SummaryCards() {
             </div>
           </div>
           <div className="text-3xl font-bold tabular-nums tracking-tight text-success">
-            {formatCurrency(globalAvailable)}
+            {hasCards ? formatCurrency(globalAvailable) : 'R$ 0,00'}
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            De um total de {formatCurrency(globalLimit)}
+            {hasCards
+              ? `De um total de ${formatCurrency(globalLimit)}`
+              : 'Nenhum cartão configurado'}
           </p>
         </CardContent>
       </Card>
@@ -78,12 +82,14 @@ export function SummaryCards() {
             </div>
           </div>
           <div className="text-3xl font-bold tracking-tight">
-            {nextDueCard ? `Dia ${nextDueCard.dueDate}` : '--'}
+            {!hasCards ? '--' : nextDueCard ? `Dia ${nextDueCard.dueDate}` : '--'}
           </div>
           <p className="text-sm text-muted-foreground mt-4 truncate">
-            {nextDueCard
-              ? `${nextDueCard.name} - Fatura: ${formatCurrency(nextDueCard.balance)}`
-              : 'Nenhum vencimento pendente neste mês'}
+            {!hasCards
+              ? 'Adicione um cartão para acompanhar'
+              : nextDueCard
+                ? `${nextDueCard.name} - Fatura: ${formatCurrency(nextDueCard.balance)}`
+                : 'Nenhum vencimento pendente neste mês'}
           </p>
         </CardContent>
       </Card>

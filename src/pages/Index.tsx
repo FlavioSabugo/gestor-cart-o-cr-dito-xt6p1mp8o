@@ -3,6 +3,7 @@ import { SpendChart } from '@/components/dashboard/SpendChart'
 import { RecentList } from '@/components/dashboard/RecentList'
 import { CardCarousel } from '@/components/dashboard/CardCarousel'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
+import { ImportStatementDialog } from '@/components/dashboard/ImportStatementDialog'
 import { RecurringSuggestions } from '@/components/dashboard/RecurringSuggestions'
 import { PeriodSelector } from '@/components/dashboard/PeriodSelector'
 
@@ -14,8 +15,9 @@ export default function Index() {
           <h2 className="text-2xl font-bold tracking-tight">Visão Geral</h2>
           <p className="text-muted-foreground">Acompanhe seus limites e faturas em tempo real.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
           <PeriodSelector />
+          <ImportStatementDialog />
           <AddTransactionDialog />
         </div>
       </div>

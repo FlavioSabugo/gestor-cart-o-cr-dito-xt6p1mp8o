@@ -20,9 +20,13 @@ export const categorizeTransaction = (
     }
   }
 
-  // Fallbacks
+  // Fallbacks - Specially updated for better Transport and Fuel coverage
   if (/(posto|shell|ipiranga|petrobras|br distribuidora|ale)/.test(lowerDesc)) return 'Combustível'
-  if (/(99|uber|estacionamento|pedagio|conectar|sem parar|veloe)/.test(lowerDesc))
+  if (
+    /(99app|99|uber|estacionamento|pedagio|conectar|sem parar|veloe|metrô|metro|cptm)/.test(
+      lowerDesc,
+    )
+  )
     return 'Transporte'
   if (
     /(ifood|mcdonalds|burger king|restaurante|padaria|supermercado|extra|carrefour|pao de acucar)/.test(
