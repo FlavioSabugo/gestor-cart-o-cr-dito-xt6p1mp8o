@@ -1,11 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase/client'
 import { CreditCard, Transaction, CategorizationRule, UploadHistory } from '@/types/finance'
 import { toast } from '@/hooks/use-toast'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder'
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
 
 const DEFAULT_RULES: CategorizationRule[] = [
   { id: 'r1', keyword: 'uber', category: 'Transporte' },
