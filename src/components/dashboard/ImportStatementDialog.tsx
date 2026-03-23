@@ -72,7 +72,8 @@ export function ImportStatementDialog() {
         if (!isNaN(amount) && dateStr && desc) {
           let parsedDate = new Date(dateStr)
           if (isNaN(parsedDate.getTime())) {
-            parsedDate = new Date() // fallback to today if invalid format
+            // Assign a date within the selected billing period if format is invalid
+            parsedDate = new Date(parseInt(billingYear, 10), parseInt(billingMonth, 10) - 1, 15)
           }
 
           validTxs.push({

@@ -37,8 +37,8 @@ export default function StatementUploadPage() {
     setIsProcessing(true)
 
     try {
-      // Simulate PDF parsing and extraction using active custom rules
-      const extractedData = await mockParsePDF(selectedFile, rules)
+      // Simulate PDF parsing and extraction using active custom rules, assigning accurate dates
+      const extractedData = await mockParsePDF(selectedFile, rules, selectedMonth, selectedYear)
       setResults(extractedData)
     } catch (error) {
       console.error('Failed to parse PDF', error)

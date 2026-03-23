@@ -1,6 +1,6 @@
 import { CreditCard, Transaction, CategorizationRule, UploadHistory } from '@/types/finance'
 
-const DB_KEY = 'finance_db_v4' // Bumped version to force zero-state evaluation
+const DB_KEY = 'finance_db_v5' // Bumped version to force zero-state evaluation
 
 interface Database {
   cards: CreditCard[]
@@ -108,6 +108,7 @@ export const api = {
     await delay(500)
     const db = getDb()
     db.transactions = []
+    db.uploads = []
     saveDb(db)
   },
 

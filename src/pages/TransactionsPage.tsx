@@ -23,12 +23,12 @@ import { AddTransactionDialog } from '@/components/transactions/AddTransactionDi
 import { Badge } from '@/components/ui/badge'
 
 export default function TransactionsPage() {
-  const { transactions, cards, deleteTransaction } = useFinance()
+  const { periodTransactions, cards, deleteTransaction, selectedMonth, selectedYear } = useFinance()
   const [search, setSearch] = useState('')
   const [filterCard, setFilterCard] = useState('all')
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const filteredTransactions = transactions.filter((t) => {
+  const filteredTransactions = periodTransactions.filter((t) => {
     const matchesSearch =
       t.description.toLowerCase().includes(search.toLowerCase()) ||
       t.category.toLowerCase().includes(search.toLowerCase())
@@ -49,8 +49,10 @@ export default function TransactionsPage() {
     <div className="space-y-6 animate-fade-in pb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Todas Transações</h2>
-          <p className="text-muted-foreground">Histórico completo de despesas.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Transações</h2>
+          <p className="text-muted-foreground">
+            Despesas da fatura de {selectedMonth}/{selectedYear}.
+          </p>
         </div>
         <AddTransactionDialog />
       </div>
@@ -99,7 +101,7 @@ export default function TransactionsPage() {
             {filteredTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                  Nenhuma transação encontrada.
+                  Nenhuma transação encontrada para este período.
                 </TableCell>
               </TableRow>
             ) : (

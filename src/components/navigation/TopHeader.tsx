@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useLocation } from 'react-router-dom'
+import { PeriodSelector } from '@/components/dashboard/PeriodSelector'
 
 const routeTitles: Record<string, string> = {
   '/': 'Visão Geral',
@@ -21,11 +22,13 @@ export function TopHeader() {
     <header className="sticky top-0 z-40 flex items-center justify-between px-4 md:px-8 h-16 bg-background/80 backdrop-blur-md border-b border-border/50">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="md:hidden" />
-        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight hidden sm:block">{title}</h1>
       </div>
 
       <div className="flex items-center gap-3 md:gap-6">
-        <div className="hidden md:flex relative w-64">
+        <PeriodSelector />
+
+        <div className="hidden lg:flex relative w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
@@ -34,12 +37,12 @@ export function TopHeader() {
           />
         </div>
 
-        <Button variant="ghost" size="icon" className="relative rounded-full">
+        <Button variant="ghost" size="icon" className="relative rounded-full shrink-0">
           <Bell className="w-5 h-5" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
         </Button>
 
-        <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all">
+        <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all shrink-0">
           <AvatarImage
             src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=4"
             alt="User"

@@ -46,61 +46,72 @@ export const categorizeTransaction = (
 export const mockParsePDF = async (
   file: File,
   rules: CategorizationRule[],
+  billingMonth?: string,
+  billingYear?: string,
 ): Promise<ParsedTransaction[]> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       // Simulate real data from user's PDF and apply custom rules to the mock data
+      // Ensuring accurate date assignment based on selected invoice period
+      const baseYear = billingYear ? parseInt(billingYear, 10) : new Date().getFullYear()
+      const baseMonth = billingMonth ? parseInt(billingMonth, 10) - 1 : new Date().getMonth()
+
+      const createDate = (dayOffset: number) => {
+        const date = new Date(baseYear, baseMonth, 15 - dayOffset)
+        return date.toISOString()
+      }
+
       const results: ParsedTransaction[] = [
         {
-          date: new Date().toISOString(),
+          date: createDate(0),
           description: 'Uber *Trip',
           amount: 25.5,
           category: categorizeTransaction('Uber *Trip', rules),
         },
         {
-          date: new Date(Date.now() - 86400000).toISOString(),
+          date: createDate(1),
           description: 'iFood *McDelivery',
           amount: 65.9,
           category: categorizeTransaction('iFood *McDelivery', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 2).toISOString(),
+          date: createDate(2),
           description: 'Drogasil',
           amount: 112.4,
           category: categorizeTransaction('Drogasil', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 3).toISOString(),
+          date: createDate(3),
           description: 'Netflix',
           amount: 39.9,
           category: categorizeTransaction('Netflix', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 4).toISOString(),
+          date: createDate(4),
           description: 'Posto Ipiranga',
           amount: 200.0,
           category: categorizeTransaction('Posto Ipiranga', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 5).toISOString(),
+          date: createDate(5),
           description: 'Mercado Livre',
           amount: 345.0,
           category: categorizeTransaction('Mercado Livre', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 6).toISOString(),
+          date: createDate(6),
           description: 'Smart Fit',
           amount: 120.0,
           category: categorizeTransaction('Smart Fit', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 7).toISOString(),
+          date: createDate(7),
           description: 'ZARA Shopping',
           amount: 289.9,
           category: categorizeTransaction('ZARA Shopping', rules),
         },
         {
-          date: new Date(Date.now() - 86400000 * 8).toISOString(),
+          date: createDate(8),
           description: 'Padaria Central',
           amount: 34.5,
           category: categorizeTransaction('Padaria Central', rules),

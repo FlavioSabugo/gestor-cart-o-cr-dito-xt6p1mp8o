@@ -130,7 +130,8 @@ export default function SettingsPage() {
                   <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Esta ação não pode ser desfeita. Isso irá deletar permanentemente todas as suas
-                    transações e zerar o histórico analítico de todos os meses.
+                    transações e faturas importadas, zerando o histórico analítico de todos os
+                    meses.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

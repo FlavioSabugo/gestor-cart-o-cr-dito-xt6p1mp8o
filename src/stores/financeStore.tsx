@@ -163,9 +163,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const clearAllTransactions = async () => {
     await api.clearAllTransactions()
     setTransactions([])
+    setUploads([])
     toast({
       title: 'Dados limpos',
-      description: 'Todas as transações foram removidas com sucesso.',
+      description: 'Todas as transações e faturas foram removidas com sucesso.',
     })
   }
 
