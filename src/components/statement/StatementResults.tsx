@@ -58,7 +58,7 @@ export function StatementResults({
         billingMonth,
         billingYear,
       }))
-      await addTransactions(newTransactions)
+      await addTransactions(newTransactions, billingMonth, billingYear)
 
       await addUpload({
         filename: file.name,

@@ -8,6 +8,7 @@ import {
 } from '@/types/finance'
 import { toast } from '@/hooks/use-toast'
 import { api } from '@/lib/api'
+import { MONTHS } from '@/lib/constants'
 
 interface FinanceState {
   isLoading: boolean
@@ -20,7 +21,11 @@ interface FinanceState {
   updateCard: (id: string, card: Omit<CreditCard, 'id'>) => Promise<void>
   deleteCard: (id: string) => Promise<void>
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>
-  addTransactions: (transactions: Omit<Transaction, 'id'>[]) => Promise<void>
+  addTransactions: (
+    transactions: Omit<Transaction, 'id'>[],
+    month?: string,
+    year?: string,
+  ) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
   addRule: (rule: Omit<CategorizationRule, 'id'>) => Promise<void>
   deleteRule: (id: string) => Promise<void>
@@ -100,12 +105,26 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Despesa registrada', description: `${transaction.description} foi salva.` })
   }
 
-  const addTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
+  const addTransactions = async (
+    newTransactions: Omit<Transaction, 'id'>[],
+    month?: string,
+    year?: string,
+  ) => {
     const savedTxs = await api.addTransactions(newTransactions)
     setTransactions((prev) => [...savedTxs, ...prev])
+
+    let monthLabel = month
+    if (month) {
+      const monthObj = MONTHS.find((m) => m.value === month)
+      if (monthObj) monthLabel = monthObj.label
+    }
+
     toast({
       title: 'Fatura Importada',
-      description: `${newTransactions.length} despesas foram registradas com sucesso.`,
+      description:
+        month && year
+          ? `Fatura de ${monthLabel} de ${year} importada com sucesso. ${newTransactions.length} despesas registradas.`
+          : `${newTransactions.length} despesas foram registradas com sucesso.`,
     })
   }
 

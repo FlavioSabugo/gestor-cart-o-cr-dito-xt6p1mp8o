@@ -18,17 +18,24 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus } from 'lucide-react'
-import { STANDARD_CATEGORIES } from '@/lib/constants'
+import { STANDARD_CATEGORIES, MONTHS } from '@/lib/constants'
 
 export function AddTransactionDialog() {
   const { cards, transactions, rules, addTransaction } = useFinance()
   const [open, setOpen] = useState(false)
+
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0')
+  const currentYear = new Date().getFullYear()
+  const currentYearStr = String(currentYear)
+  const YEARS = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString())
 
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('Outros')
   const [cardId, setCardId] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [billingMonth, setBillingMonth] = useState(currentMonth)
+  const [billingYear, setBillingYear] = useState(currentYearStr)
 
   // Combine standard, rule and existing categories to allow flexibility
   const allCategories = Array.from(
@@ -41,7 +48,7 @@ export function AddTransactionDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!description || !amount || !cardId || !date) return
+    if (!description || !amount || !cardId || !date || !billingMonth || !billingYear) return
 
     addTransaction({
       description,
@@ -49,12 +56,16 @@ export function AddTransactionDialog() {
       category,
       cardId,
       date: new Date(date).toISOString(),
+      billingMonth,
+      billingYear,
     })
 
     setOpen(false)
     setDescription('')
     setAmount('')
     setCategory('Outros')
+    setBillingMonth(currentMonth)
+    setBillingYear(currentYearStr)
   }
 
   return (
@@ -105,38 +116,76 @@ export function AddTransactionDialog() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Cartão</Label>
-            <Select value={cardId} onValueChange={setCardId} required disabled={cards.length === 0}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={cards.length > 0 ? 'Selecione um cartão' : 'Nenhum cartão'}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {cards.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Mês da Fatura</Label>
+              <Select value={billingMonth} onValueChange={setBillingMonth} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Ano da Fatura</Label>
+              <Select value={billingYear} onValueChange={setBillingYear} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEARS.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Categoria</Label>
-            <Select value={category} onValueChange={setCategory} required>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {allCategories.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Cartão</Label>
+              <Select
+                value={cardId}
+                onValueChange={setCardId}
+                required
+                disabled={cards.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={cards.length > 0 ? 'Selecione' : 'Nenhum cartão'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cards.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select value={category} onValueChange={setCategory} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCategories.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Button type="submit" className="w-full mt-4" disabled={cards.length === 0}>

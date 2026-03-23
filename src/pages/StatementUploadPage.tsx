@@ -14,21 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-
-const MONTHS = [
-  { value: '01', label: 'Janeiro' },
-  { value: '02', label: 'Fevereiro' },
-  { value: '03', label: 'Março' },
-  { value: '04', label: 'Abril' },
-  { value: '05', label: 'Maio' },
-  { value: '06', label: 'Junho' },
-  { value: '07', label: 'Julho' },
-  { value: '08', label: 'Agosto' },
-  { value: '09', label: 'Setembro' },
-  { value: '10', label: 'Outubro' },
-  { value: '11', label: 'Novembro' },
-  { value: '12', label: 'Dezembro' },
-]
+import { MONTHS } from '@/lib/constants'
 
 export default function StatementUploadPage() {
   const navigate = useNavigate()
@@ -37,12 +23,14 @@ export default function StatementUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState<ParsedTransaction[] | null>(null)
 
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0')
   const currentYear = new Date().getFullYear()
+  const currentYearStr = String(currentYear)
   const YEARS = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString())
 
   const [selectedCard, setSelectedCard] = useState<string>('')
-  const [selectedMonth, setSelectedMonth] = useState<string>('')
-  const [selectedYear, setSelectedYear] = useState<string>('')
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth)
+  const [selectedYear, setSelectedYear] = useState<string>(currentYearStr)
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile)
