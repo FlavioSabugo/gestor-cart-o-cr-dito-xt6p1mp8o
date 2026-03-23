@@ -21,7 +21,8 @@ export const categorizeTransaction = (
   }
 
   // Fallbacks
-  if (/(99|posto|shell|ipiranga|estacionamento|pedagio|conectar)/.test(lowerDesc))
+  if (/(posto|shell|ipiranga|petrobras|br distribuidora|ale)/.test(lowerDesc)) return 'Combustível'
+  if (/(99|uber|estacionamento|pedagio|conectar|sem parar|veloe)/.test(lowerDesc))
     return 'Transporte'
   if (
     /(ifood|mcdonalds|burger king|restaurante|padaria|supermercado|extra|carrefour|pao de acucar)/.test(

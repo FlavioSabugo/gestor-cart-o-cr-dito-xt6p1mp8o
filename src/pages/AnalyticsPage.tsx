@@ -14,6 +14,7 @@ import {
   Legend,
 } from 'recharts'
 import { MonthlyEvolutionChart } from '@/components/analytics/MonthlyEvolutionChart'
+import { MonthlyComparison } from '@/components/analytics/MonthlyComparison'
 import {
   Table,
   TableBody,
@@ -145,6 +146,8 @@ export default function AnalyticsPage() {
       </div>
 
       <MonthlyEvolutionChart />
+
+      <MonthlyComparison />
 
       <Card className="shadow-subtle border-none glass-effect mt-6">
         <CardHeader>

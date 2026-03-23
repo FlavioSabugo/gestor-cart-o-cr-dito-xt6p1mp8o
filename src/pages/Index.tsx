@@ -3,6 +3,7 @@ import { SpendChart } from '@/components/dashboard/SpendChart'
 import { RecentList } from '@/components/dashboard/RecentList'
 import { CardCarousel } from '@/components/dashboard/CardCarousel'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
+import { RecurringSuggestions } from '@/components/dashboard/RecurringSuggestions'
 
 export default function Index() {
   return (
@@ -16,6 +17,8 @@ export default function Index() {
       </div>
 
       <SummaryCards />
+
+      <RecurringSuggestions />
 
       <CardCarousel />
 

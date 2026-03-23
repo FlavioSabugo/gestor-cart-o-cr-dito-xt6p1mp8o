@@ -9,6 +9,7 @@ export const CARD_COLORS = [
 
 export const STANDARD_CATEGORIES = [
   'Alimentação',
+  'Combustível',
   'Transporte',
   'Lazer',
   'Saúde',

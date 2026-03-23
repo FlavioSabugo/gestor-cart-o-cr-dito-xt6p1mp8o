@@ -11,7 +11,7 @@ interface Database {
 
 const DEFAULT_RULES: CategorizationRule[] = [
   { id: 'r1', keyword: 'uber', category: 'Uber' },
-  { id: 'r2', keyword: '99app', category: 'Uber' },
+  { id: 'r2', keyword: '99app', category: 'Transporte' },
   { id: 'r3', keyword: 'farmacia', category: 'Farmácias' },
   { id: 'r4', keyword: 'drogasil', category: 'Farmácias' },
   { id: 'r5', keyword: 'pague menos', category: 'Farmácias' },
@@ -31,6 +31,20 @@ const MOCK_CARD: CreditCard = {
   last4: '1234',
 }
 
+const today = new Date()
+const currentMonth = String(today.getMonth() + 1).padStart(2, '0')
+const currentYear = String(today.getFullYear())
+
+const lastMonthDate = new Date()
+lastMonthDate.setMonth(lastMonthDate.getMonth() - 1)
+const lastMonth = String(lastMonthDate.getMonth() + 1).padStart(2, '0')
+const lastYear = String(lastMonthDate.getFullYear())
+
+const twoMonthsAgoDate = new Date()
+twoMonthsAgoDate.setMonth(twoMonthsAgoDate.getMonth() - 2)
+const twoMonthsAgo = String(twoMonthsAgoDate.getMonth() + 1).padStart(2, '0')
+const twoMonthsAgoYear = String(twoMonthsAgoDate.getFullYear())
+
 const MOCK_TRANSACTIONS: Transaction[] = [
   {
     id: 't1',
@@ -39,28 +53,78 @@ const MOCK_TRANSACTIONS: Transaction[] = [
     amount: 25.5,
     category: 'Uber',
     cardId: 'c1',
-    billingMonth: '02',
-    billingYear: '2024',
+    billingMonth: currentMonth,
+    billingYear: currentYear,
   },
   {
     id: 't2',
     date: new Date(Date.now() - 86400000).toISOString(),
-    description: 'iFood',
-    amount: 65.9,
-    category: 'Alimentação',
+    description: 'Posto Ipiranga',
+    amount: 150.0,
+    category: 'Combustível',
     cardId: 'c1',
-    billingMonth: '02',
-    billingYear: '2024',
+    billingMonth: currentMonth,
+    billingYear: currentYear,
   },
   {
     id: 't3',
-    date: new Date(Date.now() - 86400000 * 2).toISOString(),
+    date: lastMonthDate.toISOString(),
     description: 'Netflix',
     amount: 39.9,
     category: 'Assinaturas',
     cardId: 'c1',
-    billingMonth: '02',
-    billingYear: '2024',
+    billingMonth: lastMonth,
+    billingYear: lastYear,
+  },
+  {
+    id: 't4',
+    date: twoMonthsAgoDate.toISOString(),
+    description: 'Netflix',
+    amount: 39.9,
+    category: 'Assinaturas',
+    cardId: 'c1',
+    billingMonth: twoMonthsAgo,
+    billingYear: twoMonthsAgoYear,
+  },
+  {
+    id: 't5',
+    date: lastMonthDate.toISOString(),
+    description: 'Uber *Trip',
+    amount: 45.0,
+    category: 'Uber',
+    cardId: 'c1',
+    billingMonth: lastMonth,
+    billingYear: lastYear,
+  },
+  {
+    id: 't6',
+    date: lastMonthDate.toISOString(),
+    description: 'Posto Shell',
+    amount: 100.0,
+    category: 'Combustível',
+    cardId: 'c1',
+    billingMonth: lastMonth,
+    billingYear: lastYear,
+  },
+  {
+    id: 't7',
+    date: lastMonthDate.toISOString(),
+    description: 'Spotify',
+    amount: 21.9,
+    category: 'Assinaturas',
+    cardId: 'c1',
+    billingMonth: lastMonth,
+    billingYear: lastYear,
+  },
+  {
+    id: 't8',
+    date: twoMonthsAgoDate.toISOString(),
+    description: 'Spotify',
+    amount: 21.9,
+    category: 'Assinaturas',
+    cardId: 'c1',
+    billingMonth: twoMonthsAgo,
+    billingYear: twoMonthsAgoYear,
   },
 ]
 
