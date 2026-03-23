@@ -1,6 +1,6 @@
 import { CreditCard, Transaction, CategorizationRule, UploadHistory } from '@/types/finance'
 
-const DB_KEY = 'finance_db_v2'
+const DB_KEY = 'finance_db_v3'
 
 interface Database {
   cards: CreditCard[]
@@ -18,6 +18,9 @@ const DEFAULT_RULES: CategorizationRule[] = [
   { id: 'r6', keyword: 'netflix', category: 'Assinaturas' },
   { id: 'r7', keyword: 'spotify', category: 'Assinaturas' },
   { id: 'r8', keyword: 'amazon prime', category: 'Assinaturas' },
+  { id: 'r9', keyword: 'posto', category: 'Combustível' },
+  { id: 'r10', keyword: 'shell', category: 'Combustível' },
+  { id: 'r11', keyword: 'ipiranga', category: 'Combustível' },
 ]
 
 const MOCK_CARD: CreditCard = {
@@ -31,109 +34,12 @@ const MOCK_CARD: CreditCard = {
   last4: '1234',
 }
 
-const today = new Date()
-const currentMonth = String(today.getMonth() + 1).padStart(2, '0')
-const currentYear = String(today.getFullYear())
-
-const lastMonthDate = new Date()
-lastMonthDate.setMonth(lastMonthDate.getMonth() - 1)
-const lastMonth = String(lastMonthDate.getMonth() + 1).padStart(2, '0')
-const lastYear = String(lastMonthDate.getFullYear())
-
-const twoMonthsAgoDate = new Date()
-twoMonthsAgoDate.setMonth(twoMonthsAgoDate.getMonth() - 2)
-const twoMonthsAgo = String(twoMonthsAgoDate.getMonth() + 1).padStart(2, '0')
-const twoMonthsAgoYear = String(twoMonthsAgoDate.getFullYear())
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: 't1',
-    date: new Date().toISOString(),
-    description: 'Uber *Trip',
-    amount: 25.5,
-    category: 'Uber',
-    cardId: 'c1',
-    billingMonth: currentMonth,
-    billingYear: currentYear,
-  },
-  {
-    id: 't2',
-    date: new Date(Date.now() - 86400000).toISOString(),
-    description: 'Posto Ipiranga',
-    amount: 150.0,
-    category: 'Combustível',
-    cardId: 'c1',
-    billingMonth: currentMonth,
-    billingYear: currentYear,
-  },
-  {
-    id: 't3',
-    date: lastMonthDate.toISOString(),
-    description: 'Netflix',
-    amount: 39.9,
-    category: 'Assinaturas',
-    cardId: 'c1',
-    billingMonth: lastMonth,
-    billingYear: lastYear,
-  },
-  {
-    id: 't4',
-    date: twoMonthsAgoDate.toISOString(),
-    description: 'Netflix',
-    amount: 39.9,
-    category: 'Assinaturas',
-    cardId: 'c1',
-    billingMonth: twoMonthsAgo,
-    billingYear: twoMonthsAgoYear,
-  },
-  {
-    id: 't5',
-    date: lastMonthDate.toISOString(),
-    description: 'Uber *Trip',
-    amount: 45.0,
-    category: 'Uber',
-    cardId: 'c1',
-    billingMonth: lastMonth,
-    billingYear: lastYear,
-  },
-  {
-    id: 't6',
-    date: lastMonthDate.toISOString(),
-    description: 'Posto Shell',
-    amount: 100.0,
-    category: 'Combustível',
-    cardId: 'c1',
-    billingMonth: lastMonth,
-    billingYear: lastYear,
-  },
-  {
-    id: 't7',
-    date: lastMonthDate.toISOString(),
-    description: 'Spotify',
-    amount: 21.9,
-    category: 'Assinaturas',
-    cardId: 'c1',
-    billingMonth: lastMonth,
-    billingYear: lastYear,
-  },
-  {
-    id: 't8',
-    date: twoMonthsAgoDate.toISOString(),
-    description: 'Spotify',
-    amount: 21.9,
-    category: 'Assinaturas',
-    cardId: 'c1',
-    billingMonth: twoMonthsAgo,
-    billingYear: twoMonthsAgoYear,
-  },
-]
-
 const getDb = (): Database => {
   const data = localStorage.getItem(DB_KEY)
   if (data) return JSON.parse(data)
   return {
     cards: [MOCK_CARD],
-    transactions: MOCK_TRANSACTIONS,
+    transactions: [],
     rules: DEFAULT_RULES,
     uploads: [],
   }
@@ -204,6 +110,13 @@ export const api = {
     await delay(300)
     const db = getDb()
     db.transactions = db.transactions.filter((t) => t.id !== id)
+    saveDb(db)
+  },
+
+  clearAllTransactions: async (): Promise<void> => {
+    await delay(500)
+    const db = getDb()
+    db.transactions = []
     saveDb(db)
   },
 

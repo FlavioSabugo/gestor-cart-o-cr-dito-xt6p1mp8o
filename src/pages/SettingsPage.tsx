@@ -1,13 +1,27 @@
+import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { toast } from '@/hooks/use-toast'
 import { Link } from 'react-router-dom'
-import { SlidersHorizontal, FileText } from 'lucide-react'
+import { SlidersHorizontal, FileText, Trash2 } from 'lucide-react'
 
 export default function SettingsPage() {
+  const { clearAllTransactions } = useFinance()
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-8">
       <div>
@@ -85,6 +99,51 @@ export default function SettingsPage() {
               </p>
             </div>
             <Switch />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-subtle border-destructive/20 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="w-5 h-5" />
+            Zona de Perigo
+          </CardTitle>
+          <CardDescription>Ações irreversíveis para a sua conta.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <Label className="text-base font-medium">Limpar Dados de Transações</Label>
+              <p className="text-sm text-muted-foreground">
+                Remove permanentemente todas as transações, zerando o histórico.
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="shrink-0">
+                  Apagar Tudo
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Isso irá deletar permanentemente todas as suas
+                    transações e zerar o histórico analítico de todos os meses.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => clearAllTransactions()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Sim, apagar tudo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>

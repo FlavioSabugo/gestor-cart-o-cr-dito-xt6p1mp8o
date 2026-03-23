@@ -32,6 +32,7 @@ interface FinanceState {
     year?: string,
   ) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
+  clearAllTransactions: () => Promise<void>
   addRule: (rule: Omit<CategorizationRule, 'id'>) => Promise<void>
   deleteRule: (id: string) => Promise<void>
   addUpload: (upload: Omit<UploadHistory, 'id'>) => Promise<void>
@@ -159,6 +160,15 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Despesa removida' })
   }
 
+  const clearAllTransactions = async () => {
+    await api.clearAllTransactions()
+    setTransactions([])
+    toast({
+      title: 'Dados limpos',
+      description: 'Todas as transações foram removidas com sucesso.',
+    })
+  }
+
   const addRule = async (rule: Omit<CategorizationRule, 'id'>) => {
     const newRule = await api.addRule(rule)
     setRules((prev) => [...prev, newRule])
@@ -196,6 +206,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         addTransaction,
         addTransactions,
         deleteTransaction,
+        clearAllTransactions,
         addRule,
         deleteRule,
         addUpload,
