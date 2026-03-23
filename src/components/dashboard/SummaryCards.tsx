@@ -3,19 +3,30 @@ import { Card, CardContent } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/formatters'
 import { Wallet, CreditCard, CalendarClock } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
+import { MONTHS } from '@/lib/constants'
 
 export function SummaryCards() {
-  const { globalBalance, globalAvailable, globalLimit, cardsWithBalance } = useFinance()
+  const {
+    globalBalance,
+    globalAvailable,
+    globalLimit,
+    cardsWithBalance,
+    selectedMonth,
+    selectedYear,
+  } = useFinance()
 
   const usagePercent = globalLimit > 0 ? (globalBalance / globalLimit) * 100 : 0
+  const monthLabel = MONTHS.find((m) => m.value === selectedMonth)?.label || selectedMonth
 
-  // Find nearest due date
+  // Find nearest due date for cards that actually have a balance in this period
   const today = new Date().getDate()
-  const sortedCards = [...cardsWithBalance].sort((a, b) => {
-    let dueA = a.dueDate >= today ? a.dueDate - today : a.dueDate + 30 - today
-    let dueB = b.dueDate >= today ? b.dueDate - today : b.dueDate + 30 - today
-    return dueA - dueB
-  })
+  const sortedCards = [...cardsWithBalance]
+    .filter((c) => c.balance > 0)
+    .sort((a, b) => {
+      let dueA = a.dueDate >= today ? a.dueDate - today : a.dueDate + 30 - today
+      let dueB = b.dueDate >= today ? b.dueDate - today : b.dueDate + 30 - today
+      return dueA - dueB
+    })
 
   const nextDueCard = sortedCards[0]
 
@@ -26,7 +37,9 @@ export function SummaryCards() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Wallet className="w-5 h-5 text-destructive" />
-              <h3 className="font-medium">Total Faturas</h3>
+              <h3 className="font-medium">
+                Total Faturas ({monthLabel}/{selectedYear})
+              </h3>
             </div>
           </div>
           <div className="text-3xl font-bold tabular-nums tracking-tight">
@@ -34,7 +47,7 @@ export function SummaryCards() {
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Progress value={usagePercent} className="h-2 flex-1" />
-            <span>{usagePercent.toFixed(0)}% do limite</span>
+            <span>{usagePercent.toFixed(0)}% do limite total</span>
           </div>
         </CardContent>
       </Card>
@@ -65,12 +78,12 @@ export function SummaryCards() {
             </div>
           </div>
           <div className="text-3xl font-bold tracking-tight">
-            Dia {nextDueCard?.dueDate || '--'}
+            {nextDueCard ? `Dia ${nextDueCard.dueDate}` : '--'}
           </div>
           <p className="text-sm text-muted-foreground mt-4 truncate">
             {nextDueCard
               ? `${nextDueCard.name} - Fatura: ${formatCurrency(nextDueCard.balance)}`
-              : 'Nenhum cartão cadastrado'}
+              : 'Nenhum vencimento pendente neste mês'}
           </p>
         </CardContent>
       </Card>

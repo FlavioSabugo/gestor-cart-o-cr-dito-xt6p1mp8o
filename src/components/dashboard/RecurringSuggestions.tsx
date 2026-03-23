@@ -6,16 +6,13 @@ import { Plus, RefreshCw } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
 import { toast } from '@/hooks/use-toast'
 import { Transaction } from '@/types/finance'
+import { MONTHS } from '@/lib/constants'
 
 export function RecurringSuggestions() {
-  const { transactions, addTransaction } = useFinance()
+  const { transactions, addTransaction, selectedMonth, selectedYear } = useFinance()
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
 
   const suggestions = useMemo(() => {
-    const today = new Date()
-    const currentMonth = String(today.getMonth() + 1).padStart(2, '0')
-    const currentYear = String(today.getFullYear())
-
     const txByDesc = new Map<string, Transaction[]>()
     transactions.forEach((t) => {
       const arr = txByDesc.get(t.description) || []
@@ -24,13 +21,16 @@ export function RecurringSuggestions() {
     })
 
     const suggestionsList: Transaction[] = []
+    const today = new Date()
 
     for (const [_, txs] of txByDesc.entries()) {
       if (txs.length < 2) continue
 
-      const inCurrentMonth = txs.some(
-        (t) => t.billingMonth === currentMonth && t.billingYear === currentYear,
-      )
+      const inCurrentMonth = txs.some((t) => {
+        const m = t.billingMonth || t.date.substring(5, 7)
+        const y = t.billingYear || t.date.substring(0, 4)
+        return m === selectedMonth && y === selectedYear
+      })
       if (inCurrentMonth) continue
 
       const sorted = [...txs].sort(
@@ -43,33 +43,32 @@ export function RecurringSuggestions() {
         (today.getFullYear() - latestDate.getFullYear()) * 12 +
         (today.getMonth() - latestDate.getMonth())
 
-      if (monthsDiff > 0 && monthsDiff <= 2) {
+      if (monthsDiff > 0 && monthsDiff <= 3) {
         suggestionsList.push(latest)
       }
     }
 
     return suggestionsList
-  }, [transactions])
+  }, [transactions, selectedMonth, selectedYear])
 
   const handleConfirm = async (tx: Transaction) => {
-    const today = new Date()
-    const currentMonth = String(today.getMonth() + 1).padStart(2, '0')
-    const currentYear = String(today.getFullYear())
-
     await addTransaction({
       description: tx.description,
       amount: tx.amount,
       category: tx.category,
       cardId: tx.cardId,
-      date: today.toISOString(),
-      billingMonth: currentMonth,
-      billingYear: currentYear,
+      date: new Date().toISOString(),
+      billingMonth: selectedMonth,
+      billingYear: selectedYear,
     })
 
     setConfirmed((prev) => new Set(prev).add(tx.id))
+
+    const monthLabel = MONTHS.find((m) => m.value === selectedMonth)?.label || selectedMonth
+
     toast({
       title: 'Recorrência Confirmada',
-      description: `${tx.description} adicionado para a fatura de ${currentMonth}/${currentYear}.`,
+      description: `${tx.description} adicionado para a fatura de ${monthLabel}/${selectedYear}.`,
     })
   }
 
@@ -85,7 +84,7 @@ export function RecurringSuggestions() {
           Sugestões de Recorrência
         </CardTitle>
         <CardDescription>
-          Identificamos despesas recorrentes que ainda não estão na fatura deste mês.
+          Identificamos despesas recorrentes que ainda não estão na fatura selecionada.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">

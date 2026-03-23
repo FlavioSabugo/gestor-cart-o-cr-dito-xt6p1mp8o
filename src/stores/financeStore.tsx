@@ -14,6 +14,11 @@ interface FinanceState {
   isLoading: boolean
   cards: CreditCard[]
   transactions: Transaction[]
+  periodTransactions: Transaction[]
+  selectedMonth: string
+  selectedYear: string
+  setSelectedMonth: (month: string) => void
+  setSelectedYear: (year: string) => void
   cardsWithBalance: CardWithBalance[]
   rules: CategorizationRule[]
   uploads: UploadHistory[]
@@ -44,6 +49,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [rules, setRules] = useState<CategorizationRule[]>([])
   const [uploads, setUploads] = useState<UploadHistory[]>([])
 
+  const today = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(String(today.getMonth() + 1).padStart(2, '0'))
+  const [selectedYear, setSelectedYear] = useState(String(today.getFullYear()))
+
   useEffect(() => {
     let mounted = true
     api.getInitialData().then((data) => {
@@ -60,22 +69,38 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const periodTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      const bMonth = t.billingMonth || t.date.substring(5, 7)
+      const bYear = t.billingYear || t.date.substring(0, 4)
+      return bMonth === selectedMonth && bYear === selectedYear
+    })
+  }, [transactions, selectedMonth, selectedYear])
+
   const cardsWithBalance = useMemo(() => {
     return cards.map((card) => {
-      const cardTx = transactions.filter((t) => t.cardId === card.id)
-      const balance = cardTx.reduce((acc, curr) => acc + curr.amount, 0)
-      const availableLimit = Math.max(0, card.limit - balance)
-      const usagePercentage = Math.min(100, card.limit > 0 ? (balance / card.limit) * 100 : 0)
+      const allCardTx = transactions.filter((t) => t.cardId === card.id)
+      const periodCardTx = periodTransactions.filter((t) => t.cardId === card.id)
+
+      const balance = periodCardTx.reduce((acc, curr) => acc + curr.amount, 0)
+      const totalBalance = allCardTx.reduce((acc, curr) => acc + curr.amount, 0)
+
+      const availableLimit = Math.max(0, card.limit - totalBalance)
+      const usagePercentage = Math.min(100, card.limit > 0 ? (totalBalance / card.limit) * 100 : 0)
+
       return { ...card, balance, availableLimit, usagePercentage }
     })
-  }, [cards, transactions])
+  }, [cards, transactions, periodTransactions])
 
   const globalLimit = useMemo(() => cards.reduce((acc, c) => acc + c.limit, 0), [cards])
   const globalBalance = useMemo(
     () => cardsWithBalance.reduce((acc, c) => acc + c.balance, 0),
     [cardsWithBalance],
   )
-  const globalAvailable = Math.max(0, globalLimit - globalBalance)
+  const globalAvailable = useMemo(() => {
+    const totalAllBalances = transactions.reduce((acc, t) => acc + t.amount, 0)
+    return Math.max(0, globalLimit - totalAllBalances)
+  }, [globalLimit, transactions])
 
   const addCard = async (card: Omit<CreditCard, 'id'>) => {
     const newCard = await api.addCard(card)
@@ -157,6 +182,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         isLoading,
         cards,
         transactions,
+        periodTransactions,
+        selectedMonth,
+        selectedYear,
+        setSelectedMonth,
+        setSelectedYear,
         cardsWithBalance,
         rules,
         uploads,

@@ -22,13 +22,13 @@ const getCategoryIcon = (category: string) => {
 }
 
 export function RecentList() {
-  const { transactions, cards } = useFinance()
-  const recent = transactions.slice(0, 5)
+  const { periodTransactions, cards } = useFinance()
+  const recent = periodTransactions.slice(0, 5)
 
   return (
     <Card className="col-span-1 glass-effect shadow-subtle border-none">
       <CardHeader>
-        <CardTitle className="text-lg font-medium">Últimas Transações</CardTitle>
+        <CardTitle className="text-lg font-medium">Transações do Mês</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-6">
         {recent.map((t) => {
@@ -55,7 +55,7 @@ export function RecentList() {
           )
         })}
         {recent.length === 0 && (
-          <div className="text-center text-muted-foreground py-6">Nenhuma transação recente.</div>
+          <div className="text-center text-muted-foreground py-6">Nenhuma transação neste mês.</div>
         )}
       </CardContent>
     </Card>

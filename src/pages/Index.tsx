@@ -4,6 +4,7 @@ import { RecentList } from '@/components/dashboard/RecentList'
 import { CardCarousel } from '@/components/dashboard/CardCarousel'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
 import { RecurringSuggestions } from '@/components/dashboard/RecurringSuggestions'
+import { PeriodSelector } from '@/components/dashboard/PeriodSelector'
 
 export default function Index() {
   return (
@@ -13,7 +14,10 @@ export default function Index() {
           <h2 className="text-2xl font-bold tracking-tight">Visão Geral</h2>
           <p className="text-muted-foreground">Acompanhe seus limites e faturas em tempo real.</p>
         </div>
-        <AddTransactionDialog />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <PeriodSelector />
+          <AddTransactionDialog />
+        </div>
       </div>
 
       <SummaryCards />
