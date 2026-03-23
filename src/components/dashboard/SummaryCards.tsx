@@ -4,6 +4,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { Wallet, CreditCard, CalendarClock } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { MONTHS } from '@/lib/constants'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function SummaryCards() {
   const {
@@ -14,13 +15,13 @@ export function SummaryCards() {
     cardsWithBalance,
     selectedMonth,
     selectedYear,
+    isPeriodLoading,
   } = useFinance()
 
   const hasCards = cards.length > 0
   const usagePercent = globalLimit > 0 ? (globalBalance / globalLimit) * 100 : 0
   const monthLabel = MONTHS.find((m) => m.value === selectedMonth)?.label || selectedMonth
 
-  // Find nearest due date for cards that actually have a balance in this period
   const today = new Date().getDate()
   const sortedCards = [...cardsWithBalance]
     .filter((c) => c.balance > 0)
@@ -44,9 +45,13 @@ export function SummaryCards() {
               </h3>
             </div>
           </div>
-          <div className="text-3xl font-bold tabular-nums tracking-tight">
-            {hasCards ? formatCurrency(globalBalance) : 'R$ 0,00'}
-          </div>
+          {isPeriodLoading ? (
+            <Skeleton className="h-9 w-32 mb-4" />
+          ) : (
+            <div className="text-3xl font-bold tabular-nums tracking-tight">
+              {hasCards ? formatCurrency(globalBalance) : 'R$ 0,00'}
+            </div>
+          )}
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Progress value={usagePercent} className="h-2 flex-1" />
             <span>{hasCards ? `${usagePercent.toFixed(0)}% do limite total` : 'Sem dados'}</span>
@@ -62,9 +67,13 @@ export function SummaryCards() {
               <h3 className="font-medium">Limite Disponível</h3>
             </div>
           </div>
-          <div className="text-3xl font-bold tabular-nums tracking-tight text-success">
-            {hasCards ? formatCurrency(globalAvailable) : 'R$ 0,00'}
-          </div>
+          {isPeriodLoading ? (
+            <Skeleton className="h-9 w-32 mb-4" />
+          ) : (
+            <div className="text-3xl font-bold tabular-nums tracking-tight text-success">
+              {hasCards ? formatCurrency(globalAvailable) : 'R$ 0,00'}
+            </div>
+          )}
           <p className="text-sm text-muted-foreground mt-4">
             {hasCards
               ? `De um total de ${formatCurrency(globalLimit)}`
@@ -81,9 +90,13 @@ export function SummaryCards() {
               <h3 className="font-medium">Próximo Vencimento</h3>
             </div>
           </div>
-          <div className="text-3xl font-bold tracking-tight">
-            {!hasCards ? '--' : nextDueCard ? `Dia ${nextDueCard.dueDate}` : '--'}
-          </div>
+          {isPeriodLoading ? (
+            <Skeleton className="h-9 w-24 mb-4" />
+          ) : (
+            <div className="text-3xl font-bold tracking-tight">
+              {!hasCards ? '--' : nextDueCard ? `Dia ${nextDueCard.dueDate}` : '--'}
+            </div>
+          )}
           <p className="text-sm text-muted-foreground mt-4 truncate">
             {!hasCards
               ? 'Adicione um cartão para acompanhar'

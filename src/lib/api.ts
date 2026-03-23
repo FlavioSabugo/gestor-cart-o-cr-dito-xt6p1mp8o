@@ -1,13 +1,11 @@
+import { createClient } from '@supabase/supabase-js'
 import { CreditCard, Transaction, CategorizationRule, UploadHistory } from '@/types/finance'
+import { toast } from '@/hooks/use-toast'
 
-const DB_KEY = 'finance_db_v5' // Bumped version to force zero-state evaluation
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder'
 
-interface Database {
-  cards: CreditCard[]
-  transactions: Transaction[]
-  rules: CategorizationRule[]
-  uploads: UploadHistory[]
-}
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
 const DEFAULT_RULES: CategorizationRule[] = [
   { id: 'r1', keyword: 'uber', category: 'Transporte' },
@@ -25,115 +23,135 @@ const DEFAULT_RULES: CategorizationRule[] = [
   { id: 'r13', keyword: 'metro', category: 'Transporte' },
 ]
 
-const getDb = (): Database => {
-  const data = localStorage.getItem(DB_KEY)
-  if (data) return JSON.parse(data)
-  return {
-    cards: [], // Start with empty state to accurately reflect financial state when no card is configured
-    transactions: [],
-    rules: DEFAULT_RULES,
-    uploads: [],
-  }
+const handleError = (error: any, action: string) => {
+  console.error(`Error during ${action}:`, error)
+  toast({
+    title: 'Erro de Conexão',
+    description: `Não foi possível ${action}. Verifique sua conexão com o Supabase.`,
+    variant: 'destructive',
+  })
+  throw error
 }
-
-const saveDb = (db: Database) => {
-  localStorage.setItem(DB_KEY, JSON.stringify(db))
-}
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const api = {
-  getInitialData: async (): Promise<Database> => {
-    await delay(800) // Simulate network delay
-    return getDb()
+  getInitialData: async () => {
+    try {
+      const [cardsRes, txRes, rulesRes, uploadsRes] = await Promise.all([
+        supabase.from('cards').select('*'),
+        supabase.from('transactions').select('*').order('date', { ascending: false }),
+        supabase.from('rules').select('*'),
+        supabase.from('uploads').select('*').order('uploadDate', { ascending: false }),
+      ])
+
+      if (cardsRes.error || txRes.error || rulesRes.error || uploadsRes.error) {
+        throw new Error('Database fetch error')
+      }
+
+      let rules = rulesRes.data || []
+      if (rules.length === 0) {
+        rules = DEFAULT_RULES
+      }
+
+      return {
+        cards: (cardsRes.data || []) as CreditCard[],
+        transactions: (txRes.data || []) as Transaction[],
+        rules: rules as CategorizationRule[],
+        uploads: (uploadsRes.data || []) as UploadHistory[],
+      }
+    } catch (error) {
+      console.error('Error fetching initial data:', error)
+      toast({
+        title: 'Erro de Sincronização',
+        description:
+          'Não foi possível carregar os dados do banco. Verifique as credenciais do Supabase.',
+        variant: 'destructive',
+      })
+      return { cards: [], transactions: [], rules: DEFAULT_RULES, uploads: [] }
+    }
+  },
+
+  getTransactionsByPeriod: async (month: string, year: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('billingMonth', month)
+        .eq('billingYear', year)
+        .order('date', { ascending: false })
+
+      if (error) throw error
+      return { data: data as Transaction[], error: null }
+    } catch (error) {
+      console.error('Error fetching period transactions:', error)
+      return { data: [], error }
+    }
   },
 
   addCard: async (card: Omit<CreditCard, 'id'>): Promise<CreditCard> => {
-    await delay(500)
-    const db = getDb()
-    const newCard = { ...card, id: Math.random().toString(36).substr(2, 9) }
-    db.cards.push(newCard)
-    saveDb(db)
-    return newCard
+    const { data, error } = await supabase.from('cards').insert([card]).select().single()
+    if (error) handleError(error, 'salvar o cartão')
+    return data as CreditCard
   },
 
   updateCard: async (id: string, updated: Omit<CreditCard, 'id'>): Promise<CreditCard> => {
-    await delay(500)
-    const db = getDb()
-    const index = db.cards.findIndex((c) => c.id === id)
-    if (index === -1) throw new Error('Card not found')
-    const newCard = { ...updated, id }
-    db.cards[index] = newCard
-    saveDb(db)
-    return newCard
+    const { data, error } = await supabase
+      .from('cards')
+      .update(updated)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) handleError(error, 'atualizar o cartão')
+    return data as CreditCard
   },
 
   deleteCard: async (id: string): Promise<void> => {
-    await delay(500)
-    const db = getDb()
-    db.cards = db.cards.filter((c) => c.id !== id)
-    db.transactions = db.transactions.filter((t) => t.cardId !== id)
-    saveDb(db)
+    const { error } = await supabase.from('cards').delete().eq('id', id)
+    if (error) handleError(error, 'excluir o cartão')
   },
 
   addTransaction: async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-    await delay(300)
-    const db = getDb()
-    const newTx = { ...transaction, id: Math.random().toString(36).substr(2, 9) }
-    db.transactions.unshift(newTx)
-    saveDb(db)
-    return newTx
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([transaction])
+      .select()
+      .single()
+    if (error) handleError(error, 'salvar a transação')
+    return data as Transaction
   },
 
   addTransactions: async (transactions: Omit<Transaction, 'id'>[]): Promise<Transaction[]> => {
-    await delay(800)
-    const db = getDb()
-    const newTxs = transactions.map((t) => ({
-      ...t,
-      id: Math.random().toString(36).substr(2, 9),
-    }))
-    db.transactions = [...newTxs, ...db.transactions]
-    saveDb(db)
-    return newTxs
+    const { data, error } = await supabase.from('transactions').insert(transactions).select()
+    if (error) handleError(error, 'importar as transações')
+    return data as Transaction[]
   },
 
   deleteTransaction: async (id: string): Promise<void> => {
-    await delay(300)
-    const db = getDb()
-    db.transactions = db.transactions.filter((t) => t.id !== id)
-    saveDb(db)
+    const { error } = await supabase.from('transactions').delete().eq('id', id)
+    if (error) handleError(error, 'excluir a transação')
   },
 
   clearAllTransactions: async (): Promise<void> => {
-    await delay(500)
-    const db = getDb()
-    db.transactions = []
-    db.uploads = []
-    saveDb(db)
+    const { error: txError } = await supabase.from('transactions').delete().not('id', 'is', null)
+    if (txError) handleError(txError, 'limpar as transações')
+
+    const { error: upError } = await supabase.from('uploads').delete().not('id', 'is', null)
+    if (upError) handleError(upError, 'limpar os uploads')
   },
 
   addRule: async (rule: Omit<CategorizationRule, 'id'>): Promise<CategorizationRule> => {
-    await delay(300)
-    const db = getDb()
-    const newRule = { ...rule, id: Math.random().toString(36).substr(2, 9) }
-    db.rules.push(newRule)
-    saveDb(db)
-    return newRule
+    const { data, error } = await supabase.from('rules').insert([rule]).select().single()
+    if (error) handleError(error, 'salvar a regra')
+    return data as CategorizationRule
   },
 
   deleteRule: async (id: string): Promise<void> => {
-    await delay(300)
-    const db = getDb()
-    db.rules = db.rules.filter((r) => r.id !== id)
-    saveDb(db)
+    const { error } = await supabase.from('rules').delete().eq('id', id)
+    if (error) handleError(error, 'excluir a regra')
   },
 
   addUpload: async (upload: Omit<UploadHistory, 'id'>): Promise<UploadHistory> => {
-    await delay(300)
-    const db = getDb()
-    const newUpload = { ...upload, id: Math.random().toString(36).substr(2, 9) }
-    db.uploads.unshift(newUpload)
-    saveDb(db)
-    return newUpload
+    const { data, error } = await supabase.from('uploads').insert([upload]).select().single()
+    if (error) handleError(error, 'salvar o histórico')
+    return data as UploadHistory
   },
 }

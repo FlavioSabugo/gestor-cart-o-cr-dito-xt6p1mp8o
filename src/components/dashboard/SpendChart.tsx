@@ -3,6 +3,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 
 import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MONTHS } from '@/lib/constants'
 
 const chartConfig = {
@@ -13,7 +14,7 @@ const chartConfig = {
 }
 
 export function SpendChart() {
-  const { periodTransactions, selectedMonth, selectedYear } = useFinance()
+  const { periodTransactions, selectedMonth, selectedYear, isPeriodLoading } = useFinance()
 
   const monthLabel = MONTHS.find((m) => m.value === selectedMonth)?.label || selectedMonth
 
@@ -41,7 +42,15 @@ export function SpendChart() {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        {data.length > 0 ? (
+        {isPeriodLoading ? (
+          <div className="h-[250px] w-full flex items-end justify-between gap-2 px-4 pb-6">
+            <Skeleton className="w-full h-[40%]" />
+            <Skeleton className="w-full h-[70%]" />
+            <Skeleton className="w-full h-[50%]" />
+            <Skeleton className="w-full h-[90%]" />
+            <Skeleton className="w-full h-[30%]" />
+          </div>
+        ) : data.length > 0 ? (
           <ChartContainer config={chartConfig} className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

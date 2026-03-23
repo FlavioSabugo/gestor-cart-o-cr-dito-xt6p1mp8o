@@ -18,12 +18,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Trash2, Search, Filter, Loader2 } from 'lucide-react'
+import { Trash2, Search, Filter, Loader2, FileUp } from 'lucide-react'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
+import { ImportStatementDialog } from '@/components/dashboard/ImportStatementDialog'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function TransactionsPage() {
-  const { periodTransactions, cards, deleteTransaction, selectedMonth, selectedYear } = useFinance()
+  const {
+    periodTransactions,
+    cards,
+    deleteTransaction,
+    selectedMonth,
+    selectedYear,
+    isPeriodLoading,
+  } = useFinance()
   const [search, setSearch] = useState('')
   const [filterCard, setFilterCard] = useState('all')
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -54,7 +63,10 @@ export default function TransactionsPage() {
             Despesas da fatura de {selectedMonth}/{selectedYear}.
           </p>
         </div>
-        <AddTransactionDialog />
+        <div className="flex items-center gap-2">
+          <ImportStatementDialog />
+          <AddTransactionDialog />
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center bg-card p-4 rounded-xl border shadow-subtle">
@@ -98,10 +110,41 @@ export default function TransactionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.length === 0 ? (
+            {isPeriodLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-4 w-20 ml-auto" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : filteredTransactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                  Nenhuma transação encontrada para este período.
+                <TableCell colSpan={6} className="h-48 text-center">
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground space-y-4">
+                    <FileUp className="w-12 h-12 opacity-20" />
+                    <p className="text-lg font-medium">Nenhuma transação neste período</p>
+                    <p className="text-sm max-w-sm mb-4">
+                      Importe sua fatura em PDF ou registre as despesas manualmente para acompanhar
+                      seus gastos.
+                    </p>
+                    <ImportStatementDialog />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

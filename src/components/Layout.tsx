@@ -15,7 +15,7 @@ export default function Layout() {
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <p className="text-muted-foreground animate-pulse font-medium">
-            Carregando dados financeiros...
+            Conectando ao Supabase e carregando dados...
           </p>
         </div>
       </div>

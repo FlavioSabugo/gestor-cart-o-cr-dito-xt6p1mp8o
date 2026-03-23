@@ -12,6 +12,7 @@ import { MONTHS } from '@/lib/constants'
 
 interface FinanceState {
   isLoading: boolean
+  isPeriodLoading: boolean
   cards: CreditCard[]
   transactions: Transaction[]
   periodTransactions: Transaction[]
@@ -45,8 +46,10 @@ const FinanceContext = createContext<FinanceState | undefined>(undefined)
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
+  const [isPeriodLoading, setIsPeriodLoading] = useState(false)
   const [cards, setCards] = useState<CreditCard[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([])
   const [rules, setRules] = useState<CategorizationRule[]>([])
   const [uploads, setUploads] = useState<UploadHistory[]>([])
 
@@ -70,13 +73,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const periodTransactions = useMemo(() => {
-    return transactions.filter((t) => {
-      const bMonth = t.billingMonth || t.date.substring(5, 7)
-      const bYear = t.billingYear || t.date.substring(0, 4)
-      return bMonth === selectedMonth && bYear === selectedYear
-    })
-  }, [transactions, selectedMonth, selectedYear])
+  useEffect(() => {
+    let mounted = true
+    const fetchPeriodTxs = async () => {
+      setIsPeriodLoading(true)
+      const res = await api.getTransactionsByPeriod(selectedMonth, selectedYear)
+      if (mounted && !res.error) {
+        setPeriodTransactions(res.data || [])
+      }
+      if (mounted) setIsPeriodLoading(false)
+    }
+    fetchPeriodTxs()
+    return () => {
+      mounted = false
+    }
+  }, [selectedMonth, selectedYear])
 
   const cardsWithBalance = useMemo(() => {
     return cards.map((card) => {
@@ -122,12 +133,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     await api.deleteCard(id)
     setCards((prev) => prev.filter((c) => c.id !== id))
     setTransactions((prev) => prev.filter((t) => t.cardId !== id))
+    setPeriodTransactions((prev) => prev.filter((t) => t.cardId !== id))
     toast({ title: 'Cartão removido' })
   }
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     const newTx = await api.addTransaction(transaction)
     setTransactions((prev) => [newTx, ...prev])
+
+    if (transaction.billingMonth === selectedMonth && transaction.billingYear === selectedYear) {
+      setPeriodTransactions((prev) => [newTx, ...prev])
+    }
     toast({ title: 'Despesa registrada', description: `${transaction.description} foi salva.` })
   }
 
@@ -139,6 +155,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const savedTxs = await api.addTransactions(newTransactions)
     setTransactions((prev) => [...savedTxs, ...prev])
 
+    if (month === selectedMonth && year === selectedYear) {
+      setPeriodTransactions((prev) => [...savedTxs, ...prev])
+    }
+
     let monthLabel = month
     if (month) {
       const monthObj = MONTHS.find((m) => m.value === month)
@@ -149,7 +169,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       title: 'Fatura Importada',
       description:
         month && year
-          ? `Fatura de ${monthLabel} de ${year} importada com sucesso. ${newTransactions.length} despesas registradas.`
+          ? `Fatura de ${monthLabel} de ${year} importada no Supabase. ${newTransactions.length} despesas registradas.`
           : `${newTransactions.length} despesas foram registradas com sucesso.`,
     })
   }
@@ -157,16 +177,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const deleteTransaction = async (id: string) => {
     await api.deleteTransaction(id)
     setTransactions((prev) => prev.filter((t) => t.id !== id))
+    setPeriodTransactions((prev) => prev.filter((t) => t.id !== id))
     toast({ title: 'Despesa removida' })
   }
 
   const clearAllTransactions = async () => {
     await api.clearAllTransactions()
     setTransactions([])
+    setPeriodTransactions([])
     setUploads([])
     toast({
       title: 'Dados limpos',
-      description: 'Todas as transações e faturas foram removidas com sucesso.',
+      description: 'Todas as transações e faturas foram removidas permanentemente.',
     })
   }
 
@@ -191,6 +213,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     <FinanceContext.Provider
       value={{
         isLoading,
+        isPeriodLoading,
         cards,
         transactions,
         periodTransactions,
