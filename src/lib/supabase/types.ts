@@ -15,7 +15,148 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cards: {
+        Row: {
+          brand: string
+          closingDate: number
+          color: string
+          created_at: string
+          dueDate: number
+          id: string
+          last4: string
+          limit: number
+          name: string
+        }
+        Insert: {
+          brand: string
+          closingDate: number
+          color: string
+          created_at?: string
+          dueDate: number
+          id?: string
+          last4: string
+          limit: number
+          name: string
+        }
+        Update: {
+          brand?: string
+          closingDate?: number
+          color?: string
+          created_at?: string
+          dueDate?: number
+          id?: string
+          last4?: string
+          limit?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      rules: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          keyword: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          keyword: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          keyword?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          billingMonth: string | null
+          billingYear: string | null
+          cardId: string | null
+          category: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          billingMonth?: string | null
+          billingYear?: string | null
+          cardId?: string | null
+          category: string
+          created_at?: string
+          date: string
+          description: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          billingMonth?: string | null
+          billingYear?: string | null
+          cardId?: string | null
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_cardId_fkey"
+            columns: ["cardId"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uploads: {
+        Row: {
+          billingMonth: string | null
+          billingYear: string | null
+          cardId: string | null
+          created_at: string
+          filename: string
+          id: string
+          transactionCount: number
+          uploadDate: string
+        }
+        Insert: {
+          billingMonth?: string | null
+          billingYear?: string | null
+          cardId?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          transactionCount: number
+          uploadDate: string
+        }
+        Update: {
+          billingMonth?: string | null
+          billingYear?: string | null
+          cardId?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          transactionCount?: number
+          uploadDate?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploads_cardId_fkey"
+            columns: ["cardId"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -162,4 +303,61 @@ export const Constants = {
 // IMPORTANT: The TypeScript types above map UUID, TEXT, VARCHAR all to "string".
 // Use the COLUMN TYPES section below to know the real PostgreSQL type for each column.
 // Always use the correct PostgreSQL type when writing SQL migrations.
+
+// --- COLUMN TYPES (actual PostgreSQL types) ---
+// Use this to know the real database type when writing migrations.
+// "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: cards
+//   id: uuid (not null, default: gen_random_uuid())
+//   name: text (not null)
+//   brand: text (not null)
+//   limit: numeric (not null)
+//   closingDate: integer (not null)
+//   dueDate: integer (not null)
+//   color: text (not null)
+//   last4: text (not null)
+//   created_at: timestamp with time zone (not null, default: timezone('utc'::text, now()))
+// Table: rules
+//   id: uuid (not null, default: gen_random_uuid())
+//   keyword: text (not null)
+//   category: text (not null)
+//   created_at: timestamp with time zone (not null, default: timezone('utc'::text, now()))
+// Table: transactions
+//   id: uuid (not null, default: gen_random_uuid())
+//   date: text (not null)
+//   description: text (not null)
+//   amount: numeric (not null)
+//   category: text (not null)
+//   cardId: uuid (nullable)
+//   billingMonth: text (nullable)
+//   billingYear: text (nullable)
+//   created_at: timestamp with time zone (not null, default: timezone('utc'::text, now()))
+// Table: uploads
+//   id: uuid (not null, default: gen_random_uuid())
+//   filename: text (not null)
+//   uploadDate: text (not null)
+//   cardId: uuid (nullable)
+//   transactionCount: integer (not null)
+//   billingMonth: text (nullable)
+//   billingYear: text (nullable)
+//   created_at: timestamp with time zone (not null, default: timezone('utc'::text, now()))
+
+// --- CONSTRAINTS ---
+// Table: cards
+//   PRIMARY KEY cards_pkey: PRIMARY KEY (id)
+// Table: rules
+//   PRIMARY KEY rules_pkey: PRIMARY KEY (id)
+// Table: transactions
+//   FOREIGN KEY transactions_cardId_fkey: FOREIGN KEY ("cardId") REFERENCES cards(id) ON DELETE CASCADE
+//   PRIMARY KEY transactions_pkey: PRIMARY KEY (id)
+// Table: uploads
+//   FOREIGN KEY uploads_cardId_fkey: FOREIGN KEY ("cardId") REFERENCES cards(id) ON DELETE CASCADE
+//   PRIMARY KEY uploads_pkey: PRIMARY KEY (id)
+
+// --- WARNING: TABLES WITH RLS ENABLED BUT NO POLICIES ---
+// These tables have Row Level Security enabled but NO policies defined.
+// This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
+// for non-superuser roles (including the anon and authenticated roles used by the app).
+// You MUST create RLS policies for these tables to allow data access.
+//   - cards
 
