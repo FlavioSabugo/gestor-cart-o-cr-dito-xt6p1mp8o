@@ -4,7 +4,7 @@ import { FileUp, Loader2, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UploadDropzone } from '@/components/statement/UploadDropzone'
 import { StatementResults } from '@/components/statement/StatementResults'
-import { mockParsePDF, categorizeTransaction, ParsedTransaction } from '@/lib/statementParser'
+import { parsePDF, categorizeTransaction, ParsedTransaction } from '@/lib/statementParser'
 import { useNavigate } from 'react-router-dom'
 import {
   Select,
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { MONTHS } from '@/lib/constants'
+import { toast } from '@/hooks/use-toast'
 
 export default function StatementUploadPage() {
   const navigate = useNavigate()
@@ -70,12 +71,27 @@ export default function StatementUploadPage() {
         }
         setResults(parsedTxs)
       } else {
-        // PDF mock fallback
-        const extractedData = await mockParsePDF(selectedFile, rules, selectedMonth, selectedYear)
-        setResults(extractedData)
+        const extractedData = await parsePDF(selectedFile, rules, selectedMonth, selectedYear)
+        if (extractedData.length === 0) {
+          toast({
+            title: 'Nenhuma transação encontrada',
+            description:
+              'Não foi possível extrair dados automáticos deste PDF. O formato pode não ser suportado.',
+            variant: 'destructive',
+          })
+          setFile(null)
+        } else {
+          setResults(extractedData)
+        }
       }
     } catch (error) {
       console.error('Failed to parse file', error)
+      toast({
+        title: 'Erro na leitura',
+        description: error instanceof Error ? error.message : 'Falha ao processar o arquivo.',
+        variant: 'destructive',
+      })
+      setFile(null)
     } finally {
       setIsProcessing(false)
     }
@@ -188,8 +204,7 @@ export default function StatementUploadPage() {
           <div className="text-center space-y-2">
             <h3 className="text-xl font-semibold">Analisando o documento...</h3>
             <p className="text-muted-foreground max-w-sm">
-              Lendo transações, identificando valores e aplicando suas regras personalizadas no
-              arquivo {file?.name}.
+              Lendo transações e processando os dados extraídos do arquivo {file?.name}...
             </p>
           </div>
         </div>

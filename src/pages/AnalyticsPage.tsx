@@ -5,26 +5,18 @@ import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
   Tooltip,
   Legend,
 } from 'recharts'
-import { MonthlyEvolutionChart } from '@/components/analytics/MonthlyEvolutionChart'
-import { MonthlyComparison } from '@/components/analytics/MonthlyComparison'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { formatCurrency } from '@/lib/formatters'
+import { BarChart3, PieChart as PieChartIcon } from 'lucide-react'
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -32,57 +24,93 @@ const COLORS = [
   'hsl(var(--chart-3))',
   'hsl(var(--chart-4))',
   'hsl(var(--chart-5))',
-  '#10B981',
-  '#F59E0B',
-  '#8B5CF6',
-  '#EC4899',
-  '#14B8A6',
-  '#F43F5E',
-  '#0EA5E9',
+  'hsl(var(--primary))',
+  '#f59e0b',
+  '#10b981',
+  '#8b5cf6',
+  '#6366f1',
+  '#ec4899',
+  '#64748b',
 ]
 
 export default function AnalyticsPage() {
-  const { transactions, cards } = useFinance()
+  const { periodTransactions, cards, selectedMonth, selectedYear } = useFinance()
 
   const categoryData = useMemo(() => {
-    const acc: Record<string, number> = {}
-    transactions.forEach((t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount
+    const totals: Record<string, number> = {}
+    periodTransactions.forEach((t) => {
+      totals[t.category] = (totals[t.category] || 0) + t.amount
     })
-    return Object.keys(acc)
-      .map((key, index) => ({
-        name: key,
-        value: acc[key],
-        fill: COLORS[index % COLORS.length],
-      }))
-      .sort((a, b) => b.value - a.value)
-  }, [transactions])
 
-  const cardUsageData = useMemo(() => {
-    const acc: Record<string, number> = {}
-    transactions.forEach((t) => {
-      acc[t.cardId] = (acc[t.cardId] || 0) + t.amount
+    return Object.entries(totals)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+  }, [periodTransactions])
+
+  const cardData = useMemo(() => {
+    const totals: Record<string, number> = {}
+    periodTransactions.forEach((t) => {
+      totals[t.cardId] = (totals[t.cardId] || 0) + t.amount
     })
-    return Object.keys(acc).map((key) => ({
-      name: cards.find((c) => c.id === key)?.name || 'Removido',
-      total: acc[key],
-    }))
-  }, [transactions, cards])
+
+    return Object.entries(totals)
+      .map(([cardId, value]) => {
+        const card = cards.find((c) => c.id === cardId)
+        return {
+          name: card ? card.name : 'Desconhecido',
+          value,
+        }
+      })
+      .sort((a, b) => b.value - a.value)
+  }, [periodTransactions, cards])
+
+  const totalPeriod = periodTransactions.reduce((acc, t) => acc + t.amount, 0)
+
+  const chartConfig = {
+    value: {
+      label: 'Gasto',
+      color: 'hsl(var(--primary))',
+    },
+  }
+
+  if (periodTransactions.length === 0) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard de Gastos</h2>
+        <Card className="flex flex-col items-center justify-center py-24 text-center border-dashed">
+          <PieChartIcon className="w-16 h-16 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Sem dados para este período</h3>
+          <p className="text-muted-foreground max-w-sm">
+            Importe uma fatura ou adicione transações para visualizar o resumo de gastos de{' '}
+            {selectedMonth}/{selectedYear}.
+          </p>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Análise de Gastos</h2>
-        <p className="text-muted-foreground">Entenda para onde seu dinheiro está indo.</p>
+    <div className="space-y-8 animate-fade-in pb-8">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard de Gastos</h2>
+        <p className="text-muted-foreground">
+          Análise visual das suas despesas para o período selecionado.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-subtle border-none glass-effect">
-          <CardHeader>
-            <CardTitle>Gastos por Categoria</CardTitle>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-subtle">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <PieChartIcon className="w-5 h-5 text-primary" />
+              Gastos por Categoria
+            </CardTitle>
+            <CardDescription>
+              Distribuição do total de {formatCurrency(totalPeriod)}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center">
-            {categoryData.length > 0 ? (
+          <CardContent className="h-[350px]">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -90,108 +118,81 @@ export default function AnalyticsPage() {
                     cx="50%"
                     cy="50%"
                     innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={5}
+                    outerRadius={110}
+                    paddingAngle={2}
                     dataKey="value"
-                    animationDuration={1500}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
                   >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    {categoryData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} />
                 </PieChart>
               </ResponsiveContainer>
-            ) : (
-              <p className="text-muted-foreground">Sem dados suficientes.</p>
-            )}
+            </ChartContainer>
           </CardContent>
         </Card>
 
-        <Card className="shadow-subtle border-none glass-effect">
-          <CardHeader>
-            <CardTitle>Uso por Cartão</CardTitle>
+        <Card className="shadow-subtle">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              Gastos por Cartão
+            </CardTitle>
+            <CardDescription>Volume de despesas concentradas em cada cartão</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
-            {cardUsageData.length > 0 ? (
+          <CardContent className="h-[350px]">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cardUsageData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
-                  <YAxis
-                    tickLine={false}
+                <BarChart data={cardData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--muted-foreground)/0.2)"
+                  />
+                  <XAxis
+                    dataKey="name"
                     axisLine={false}
-                    tickFormatter={(val) => `R$${val}`}
-                    width={60}
+                    tickLine={false}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    tickFormatter={(value) => `R$ ${value}`}
                   />
                   <Tooltip
-                    formatter={(value: number) => `R$ ${value.toFixed(2)}`}
-                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                    cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
+                    formatter={(value: number) => [formatCurrency(value), 'Total']}
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
                   />
-                  <Bar
-                    dataKey="total"
-                    fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
-                    animationDuration={1500}
-                  />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {cardData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % 5]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                Sem dados.
-              </div>
-            )}
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
-
-      <MonthlyEvolutionChart />
-
-      <MonthlyComparison />
-
-      <Card className="shadow-subtle border-none glass-effect mt-6">
-        <CardHeader>
-          <CardTitle>Histórico de Transações</CardTitle>
-          <CardDescription>Visualização detalhada por categoria e data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border bg-card/50 overflow-hidden">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.slice(0, 10).map((t) => (
-                  <TableRow key={t.id} className="transition-colors hover:bg-muted/30">
-                    <TableCell className="whitespace-nowrap">{formatDate(t.date)}</TableCell>
-                    <TableCell className="font-medium">{t.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-normal">
-                        {t.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {formatCurrency(t.amount)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {transactions.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
-                      Nenhuma transação registrada.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

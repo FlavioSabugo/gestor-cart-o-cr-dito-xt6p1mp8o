@@ -13,14 +13,14 @@ export const categorizeTransaction = (
 ): TransactionCategory => {
   const lowerDesc = description.toLowerCase()
 
-  // First apply custom user rules from database mappings
+  // Apply custom rules
   for (const rule of rules) {
     if (lowerDesc.includes(rule.keyword.toLowerCase())) {
       return rule.category
     }
   }
 
-  // Fallbacks - Specially updated for better Transport and Fuel coverage
+  // Fallbacks
   if (/(posto|shell|ipiranga|petrobras|br distribuidora|ale)/.test(lowerDesc)) return 'Combustível'
   if (
     /(99app|99|uber|estacionamento|pedagio|conectar|sem parar|veloe|metrô|metro|cptm)/.test(
@@ -34,90 +34,124 @@ export const categorizeTransaction = (
     )
   )
     return 'Alimentação'
-  if (/(hospital|clinica|unimed|laboratorio)/.test(lowerDesc)) return 'Saúde'
+  if (/(hospital|clinica|unimed|laboratorio|farmacia|drogasil|pague menos)/.test(lowerDesc))
+    return 'Saúde'
   if (/(cinema|teatro|ingresso|show|sympla|eventim)/.test(lowerDesc)) return 'Lazer'
   if (/(faculdade|escola|curso|udemy|alura|puc|estacio)/.test(lowerDesc)) return 'Educação'
-  if (/(shopping|loja|mercado livre|shopee|zara|renner|shein|aliexpress)/.test(lowerDesc))
+  if (/(shopping|loja|mercado livre|shopee|zara|renner|shein|aliexpress|amazon)/.test(lowerDesc))
     return 'Compras'
+  if (/(netflix|spotify|prime|hbo|disney|apple)/.test(lowerDesc)) return 'Assinaturas'
 
   return 'Outros'
 }
 
-export const mockParsePDF = async (
+export const parseStatementLinesFlexible = (
+  lines: string[],
+  rules: CategorizationRule[],
+  defaultYear: string,
+  defaultMonth: string,
+): ParsedTransaction[] => {
+  const transactions: ParsedTransaction[] = []
+  // Regex to match typical lines: "15/04 UBER *TRIP R$ 25,50" or "UBER 25.50"
+  const regex =
+    /^(?:(\d{2}\/\d{2})\s+)?(.+?)\s+(?:R\$?\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2}|-?\d+\.\d{2})$/i
+
+  let lastDate = `15/${defaultMonth.padStart(2, '0')}`
+
+  for (const line of lines) {
+    const dateMatch = line.match(/^(\d{2}\/\d{2})$/)
+    if (dateMatch) {
+      lastDate = dateMatch[1]
+      continue
+    }
+
+    const match = line.match(regex)
+    if (match) {
+      const dateStr = match[1] || lastDate
+      const desc = match[2]
+      const amountStr = match[3]
+
+      // Ignore common non-expense lines
+      if (/(pagamento|fatura|recebido|pago|saldo anterior|iof|juros|multa|encargos)/i.test(desc))
+        continue
+
+      let cleanAmount = amountStr.replace(/\./g, '').replace(',', '.')
+      if (amountStr.includes('.') && !amountStr.includes(',')) {
+        cleanAmount = amountStr
+      }
+      const amount = parseFloat(cleanAmount)
+      if (isNaN(amount) || amount <= 0) continue
+
+      const [day, month] = dateStr.split('/')
+      let txYear = parseInt(defaultYear, 10)
+      const defMonthNum = parseInt(defaultMonth, 10)
+      const txMonthNum = parseInt(month, 10)
+
+      // Handle year wrap-around
+      if (defMonthNum === 1 && txMonthNum === 12) txYear--
+      else if (defMonthNum === 12 && txMonthNum === 1) txYear++
+
+      const date = new Date(txYear, txMonthNum - 1, parseInt(day, 10))
+
+      transactions.push({
+        date: date.toISOString(),
+        description: desc.trim(),
+        amount,
+        category: categorizeTransaction(desc.trim(), rules),
+      })
+    }
+  }
+  return transactions
+}
+
+export const parsePDF = async (
   file: File,
   rules: CategorizationRule[],
-  billingMonth?: string,
-  billingYear?: string,
+  billingMonth: string,
+  billingYear: string,
 ): Promise<ParsedTransaction[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulate real data from user's PDF and apply custom rules to the mock data
-      // Ensuring accurate date assignment based on selected invoice period
-      const baseYear = billingYear ? parseInt(billingYear, 10) : new Date().getFullYear()
-      const baseMonth = billingMonth ? parseInt(billingMonth, 10) - 1 : new Date().getMonth()
+  try {
+    if (!(window as any).pdfjsLib) {
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+      await new Promise((resolve, reject) => {
+        script.onload = resolve
+        script.onerror = reject
+        document.head.appendChild(script)
+      })
+      const pdfjsLib = (window as any).pdfjsLib
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    }
 
-      const createDate = (dayOffset: number) => {
-        const date = new Date(baseYear, baseMonth, 15 - dayOffset)
-        return date.toISOString()
+    const pdfjsLib = (window as any).pdfjsLib
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const lines: string[] = []
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const textContent = await page.getTextContent()
+
+      const yMap = new Map<number, string[]>()
+      for (const item of textContent.items) {
+        if (!item.str.trim()) continue
+        const y = Math.round(item.transform[5] / 2) * 2
+        if (!yMap.has(y)) yMap.set(y, [])
+        yMap.get(y)!.push(item.str.trim())
       }
 
-      const results: ParsedTransaction[] = [
-        {
-          date: createDate(0),
-          description: 'Uber *Trip',
-          amount: 25.5,
-          category: categorizeTransaction('Uber *Trip', rules),
-        },
-        {
-          date: createDate(1),
-          description: 'iFood *McDelivery',
-          amount: 65.9,
-          category: categorizeTransaction('iFood *McDelivery', rules),
-        },
-        {
-          date: createDate(2),
-          description: 'Drogasil',
-          amount: 112.4,
-          category: categorizeTransaction('Drogasil', rules),
-        },
-        {
-          date: createDate(3),
-          description: 'Netflix',
-          amount: 39.9,
-          category: categorizeTransaction('Netflix', rules),
-        },
-        {
-          date: createDate(4),
-          description: 'Posto Ipiranga',
-          amount: 200.0,
-          category: categorizeTransaction('Posto Ipiranga', rules),
-        },
-        {
-          date: createDate(5),
-          description: 'Mercado Livre',
-          amount: 345.0,
-          category: categorizeTransaction('Mercado Livre', rules),
-        },
-        {
-          date: createDate(6),
-          description: 'Smart Fit',
-          amount: 120.0,
-          category: categorizeTransaction('Smart Fit', rules),
-        },
-        {
-          date: createDate(7),
-          description: 'ZARA Shopping',
-          amount: 289.9,
-          category: categorizeTransaction('ZARA Shopping', rules),
-        },
-        {
-          date: createDate(8),
-          description: 'Padaria Central',
-          amount: 34.5,
-          category: categorizeTransaction('Padaria Central', rules),
-        },
-      ]
-      resolve(results)
-    }, 2000)
-  })
+      const sortedYs = Array.from(yMap.keys()).sort((a, b) => b - a)
+      for (const y of sortedYs) {
+        lines.push(yMap.get(y)!.join(' '))
+      }
+    }
+
+    return parseStatementLinesFlexible(lines, rules, billingYear, billingMonth)
+  } catch (error) {
+    console.error('Error parsing PDF:', error)
+    throw new Error(
+      'Falha ao ler o arquivo PDF. Verifique se o arquivo é um formato de texto suportado.',
+    )
+  }
 }
