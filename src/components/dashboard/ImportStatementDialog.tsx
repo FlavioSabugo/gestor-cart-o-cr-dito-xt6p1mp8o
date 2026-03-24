@@ -24,7 +24,7 @@ import { MONTHS } from '@/lib/constants'
 import { toast } from '@/hooks/use-toast'
 
 export function ImportStatementDialog() {
-  const { cards, addTransactions, rules } = useFinance()
+  const { cards, addTransactions, rules, transactions } = useFinance()
   const [open, setOpen] = useState(false)
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0')
@@ -68,11 +68,11 @@ export function ImportStatementDialog() {
         const desc = parts[1].trim()
         const amountStr = parts[2].trim()
         const amount = parseFloat(amountStr)
+        const cardholder = parts.length >= 4 ? parts[3].trim() : 'Principal'
 
         if (!isNaN(amount) && dateStr && desc) {
           let parsedDate = new Date(dateStr)
           if (isNaN(parsedDate.getTime())) {
-            // Assign a date within the selected billing period if format is invalid
             parsedDate = new Date(parseInt(billingYear, 10), parseInt(billingMonth, 10) - 1, 15)
           }
 
@@ -80,10 +80,11 @@ export function ImportStatementDialog() {
             date: parsedDate.toISOString(),
             description: desc,
             amount,
-            category: categorizeTransaction(desc, rules),
+            category: categorizeTransaction(desc, rules, transactions),
             cardId,
             billingMonth,
             billingYear,
+            cardholder,
           })
         }
       }
@@ -119,7 +120,8 @@ export function ImportStatementDialog() {
         <DialogHeader>
           <DialogTitle>Importação Rápida de Fatura</DialogTitle>
           <DialogDescription>
-            Cole as transações no formato estruturado (CSV) para análise e categorização automática.
+            Cole as transações no formato estruturado (CSV) para análise e categorização automática
+            com IA.
           </DialogDescription>
         </DialogHeader>
 
@@ -183,13 +185,13 @@ export function ImportStatementDialog() {
             <div className="flex items-center justify-between">
               <Label>Dados da Fatura (CSV)</Label>
               <span className="text-xs text-muted-foreground">
-                Formato: YYYY-MM-DD, Descrição, Valor
+                Data, Descrição, Valor, [Titular]
               </span>
             </div>
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={`2023-10-15, Uber Viagem, 25.90\n2023-10-16, Posto Ipiranga, 150.00\n2023-10-17, 99App, 14.50`}
+              placeholder={`2023-10-15, Uber Viagem, 25.90, Flávio\n2023-10-16, Posto Ipiranga, 150.00, Principal`}
               className="font-mono text-sm h-32"
               disabled={!hasCards}
             />

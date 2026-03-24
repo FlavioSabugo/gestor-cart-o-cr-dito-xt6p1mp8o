@@ -33,11 +33,11 @@ export function AddTransactionDialog() {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('Outros')
   const [cardId, setCardId] = useState('')
+  const [cardholder, setCardholder] = useState('Principal')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [billingMonth, setBillingMonth] = useState(currentMonth)
   const [billingYear, setBillingYear] = useState(currentYearStr)
 
-  // Combine standard, rule and existing categories to allow flexibility
   const allCategories = Array.from(
     new Set([
       ...STANDARD_CATEGORIES,
@@ -58,12 +58,14 @@ export function AddTransactionDialog() {
       date: new Date(date).toISOString(),
       billingMonth,
       billingYear,
+      cardholder,
     })
 
     setOpen(false)
     setDescription('')
     setAmount('')
     setCategory('Outros')
+    setCardholder('Principal')
     setBillingMonth(currentMonth)
     setBillingYear(currentYearStr)
   }
@@ -186,6 +188,17 @@ export function AddTransactionDialog() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cardholder">Titular da Despesa</Label>
+            <Input
+              id="cardholder"
+              value={cardholder}
+              onChange={(e) => setCardholder(e.target.value)}
+              placeholder="Ex: Titular Principal"
+              required
+            />
           </div>
 
           <Button type="submit" className="w-full mt-4" disabled={cards.length === 0}>

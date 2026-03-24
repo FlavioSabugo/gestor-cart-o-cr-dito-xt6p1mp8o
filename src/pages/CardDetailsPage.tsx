@@ -100,6 +100,16 @@ export default function CardDetailsPage() {
       .sort((a, b) => b.value - a.value)
   }, [monthTransactions])
 
+  const transactionsByCardholder = useMemo(() => {
+    const groups: Record<string, typeof monthTransactions> = {}
+    monthTransactions.forEach((t) => {
+      const ch = t.cardholder || 'Principal'
+      if (!groups[ch]) groups[ch] = []
+      groups[ch].push(t)
+    })
+    return groups
+  }, [monthTransactions])
+
   const handleDeleteCard = async () => {
     if (!card) return
     setIsDeletingCard(true)
@@ -197,7 +207,7 @@ export default function CardDetailsPage() {
         <div className="md:col-span-2 space-y-6">
           <Card className="shadow-subtle h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">Resumo: {formatMonth(selectedMonth)}</CardTitle>
+              <CardTitle className="text-lg">Total Fatura: {formatMonth(selectedMonth)}</CardTitle>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
@@ -213,7 +223,7 @@ export default function CardDetailsPage() {
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-6 items-center">
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-sm text-muted-foreground mb-1">Total da Fatura</p>
+                <p className="text-sm text-muted-foreground mb-1">Somatório Geral</p>
                 <div className="text-4xl font-bold text-primary">{formatCurrency(monthTotal)}</div>
               </div>
               {categoryData.length > 0 && (
@@ -243,52 +253,123 @@ export default function CardDetailsPage() {
         </div>
       </div>
 
-      <Card className="shadow-subtle">
-        <CardHeader>
-          <CardTitle>Transações de {formatMonth(selectedMonth)}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {monthTransactions.map((t) => (
-              <div
-                key={t.id}
-                className="flex justify-between items-center py-3 border-b last:border-0 hover:bg-muted/30 px-2 rounded transition-colors group"
-              >
-                <div>
-                  <p className="font-medium">{t.description}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatDate(t.date)} •{' '}
-                    <span className="font-medium text-foreground/70">{t.category}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`font-semibold ${t.amount < 0 ? 'text-green-600' : ''}`}>
-                    {formatCurrency(t.amount)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity ${deletingTxId === t.id ? 'opacity-100' : ''}`}
-                    onClick={() => handleDeleteTx(t.id)}
-                    disabled={deletingTxId === t.id}
-                  >
-                    {deletingTxId === t.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <XCircle className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
+      {Object.entries(transactionsByCardholder)
+        .sort()
+        .map(([ch, txs]) => {
+          const chTotal = txs.reduce((acc, t) => acc + t.amount, 0)
+
+          const accCats: Record<string, number> = {}
+          txs.forEach((t) => {
+            accCats[t.category] = (accCats[t.category] || 0) + t.amount
+          })
+          const chCatData = Object.keys(accCats)
+            .filter((key) => accCats[key] > 0)
+            .map((key, i) => ({
+              name: key,
+              value: accCats[key],
+              fill: COLORS[i % COLORS.length],
+            }))
+            .sort((a, b) => b.value - a.value)
+
+          return (
+            <div key={ch} className="space-y-6 pt-8 border-t border-border/50">
+              <h3 className="text-xl font-semibold tracking-tight px-1">Titular: {ch}</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="shadow-subtle md:col-span-1 flex flex-col justify-center items-center py-8">
+                  <p className="text-sm text-muted-foreground mb-2">Total</p>
+                  <div className="text-3xl font-bold tracking-tight text-foreground">
+                    {formatCurrency(chTotal)}
+                  </div>
+                </Card>
+
+                <Card className="shadow-subtle md:col-span-1 p-6">
+                  {chCatData.length > 0 ? (
+                    <div className="h-[160px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={chCatData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={30}
+                            outerRadius={60}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {chCatData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                      Sem categorias
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="shadow-subtle md:col-span-2 h-full flex flex-col">
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-base">Lançamentos</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-auto max-h-[220px] px-4 pb-4">
+                    <div className="space-y-1">
+                      {txs.map((t) => (
+                        <div
+                          key={t.id}
+                          className="flex justify-between items-center py-2.5 border-b last:border-0 hover:bg-muted/30 px-2 rounded transition-colors group"
+                        >
+                          <div>
+                            <p className="font-medium text-sm">{t.description}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {formatDate(t.date)} •{' '}
+                              <span className="font-medium text-foreground/70">{t.category}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`font-semibold text-sm ${t.amount < 0 ? 'text-green-600' : ''}`}
+                            >
+                              {formatCurrency(t.amount)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity ${deletingTxId === t.id ? 'opacity-100' : ''}`}
+                              onClick={() => handleDeleteTx(t.id)}
+                              disabled={deletingTxId === t.id}
+                            >
+                              {deletingTxId === t.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <XCircle className="w-3 h-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {txs.length === 0 && (
+                        <div className="text-center text-muted-foreground py-4 text-sm">
+                          Nenhuma transação.
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            ))}
-            {monthTransactions.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                Nenhuma transação nesta fatura.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          )
+        })}
+
+      {monthTransactions.length === 0 && (
+        <div className="text-center text-muted-foreground py-8 border rounded-lg border-dashed">
+          Nenhuma transação nesta fatura.
+        </div>
+      )}
     </div>
   )
 }

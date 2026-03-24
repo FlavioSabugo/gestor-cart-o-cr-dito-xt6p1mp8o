@@ -4,8 +4,8 @@ import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -57,14 +57,17 @@ export function StatementResults({
     return Array.from(cats).sort()
   }, [rules, results])
 
-  const { totals, grandTotal } = useMemo(() => {
+  const { totals, grandTotal, cardholderTotals } = useMemo(() => {
     const categoryTotals: Record<string, number> = {}
+    const chTotals: Record<string, number> = {}
     let total = 0
     results.forEach((t) => {
       categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount
+      const ch = t.cardholder || 'Principal'
+      chTotals[ch] = (chTotals[ch] || 0) + t.amount
       total += t.amount
     })
-    return { totals: categoryTotals, grandTotal: total }
+    return { totals: categoryTotals, grandTotal: total, cardholderTotals: chTotals }
   }, [results])
 
   const sortedCategories = Object.entries(totals)
@@ -79,6 +82,7 @@ export function StatementResults({
         cardId,
         billingMonth,
         billingYear,
+        cardholder: t.cardholder || 'Principal',
       }))
       await addTransactions(newTransactions, billingMonth, billingYear)
 
@@ -103,9 +107,15 @@ export function StatementResults({
     setResults(newResults)
   }
 
+  const updateCardholder = (index: number, newCardholder: string) => {
+    const newResults = [...results]
+    newResults[index].cardholder = newCardholder
+    setResults(newResults)
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
-      <div className="lg:col-span-1 space-y-6">
+    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-fade-in-up">
+      <div className="xl:col-span-1 space-y-6">
         <Card className="shadow-subtle border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-lg">Salvar Transações</CardTitle>
@@ -113,18 +123,20 @@ export function StatementResults({
           <CardContent className="space-y-4">
             <div className="bg-background/50 border p-4 rounded-lg space-y-3 mb-4 text-sm">
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Cartão Destino:</span>
+                <span className="text-muted-foreground">Cartão:</span>
                 <span className="font-medium text-right">{card?.name || 'Desconhecido'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Mês/Ano Fatura:</span>
+                <span className="text-muted-foreground">Fatura:</span>
                 <span className="font-medium text-right">
                   {billingMonth}/{billingYear}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Transações:</span>
-                <span className="font-medium text-right">{results.length}</span>
+                <span className="text-muted-foreground">Total:</span>
+                <span className="font-bold text-right text-primary">
+                  {formatCurrency(grandTotal)}
+                </span>
               </div>
             </div>
             <Button className="w-full" onClick={handleImport} disabled={isSubmitting}>
@@ -140,20 +152,33 @@ export function StatementResults({
 
         <Card className="shadow-subtle">
           <CardHeader>
-            <CardTitle>Resumo por Categoria</CardTitle>
+            <CardTitle>Resumos</CardTitle>
             <CardDescription>Distribuição inteligente e editável</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg mb-6">
-              <span className="text-sm text-muted-foreground">Total Extraído</span>
-              <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>
-            </div>
+            {Object.entries(cardholderTotals).length > 1 && (
+              <div className="space-y-3 mb-6 pb-6 border-b">
+                <h4 className="font-semibold text-sm">Resumo por Titular</h4>
+                {Object.entries(cardholderTotals).map(([ch, amount]) => (
+                  <div
+                    key={ch}
+                    className="flex justify-between items-center bg-muted/30 p-2 rounded"
+                  >
+                    <span className="font-medium text-sm truncate max-w-[120px]" title={ch}>
+                      {ch}
+                    </span>
+                    <span className="font-bold text-primary">{formatCurrency(amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="space-y-4">
+              <h4 className="font-semibold text-sm">Por Categoria</h4>
               {sortedCategories.map(([cat, amount]) => (
                 <div key={cat} className="space-y-1.5">
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium text-muted-foreground">{cat}</span>
+                    <span className="font-medium text-muted-foreground truncate pr-2">{cat}</span>
                     <span className="font-medium">{formatCurrency(amount)}</span>
                   </div>
                   <Progress value={(amount / Math.max(grandTotal, 1)) * 100} className="h-2" />
@@ -164,29 +189,35 @@ export function StatementResults({
         </Card>
       </div>
 
-      <Card className="lg:col-span-2 shadow-subtle flex flex-col h-full">
+      <Card className="xl:col-span-3 shadow-subtle flex flex-col h-full">
         <CardHeader>
           <CardTitle>Transações Extraídas</CardTitle>
-          <CardDescription>Revise e ajuste as categorias antes de salvar</CardDescription>
+          <CardDescription>
+            Revise e ajuste as categorias e os titulares antes de salvar
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 overflow-auto p-0 px-6 pb-6">
-          <div className="rounded-md border h-[500px] overflow-auto">
+          <div className="rounded-md border h-[600px] overflow-auto">
             <Table>
               <TableHeader className="bg-muted/50 sticky top-0 z-10">
                 <TableRow>
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Titular</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {results.map((t, idx) => (
                   <TableRow key={idx}>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                    <TableCell className="whitespace-nowrap text-muted-foreground text-xs">
                       {formatDate(t.date)}
                     </TableCell>
-                    <TableCell className="font-medium max-w-[200px] truncate" title={t.description}>
+                    <TableCell
+                      className="font-medium max-w-[200px] truncate text-sm"
+                      title={t.description}
+                    >
                       {t.description}
                     </TableCell>
                     <TableCell>
@@ -203,8 +234,16 @@ export function StatementResults({
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <Input
+                        value={t.cardholder || ''}
+                        onChange={(e) => updateCardholder(idx, e.target.value)}
+                        className="h-8 text-xs w-[120px]"
+                        placeholder="Principal"
+                      />
+                    </TableCell>
                     <TableCell
-                      className={`text-right font-medium ${t.amount < 0 ? 'text-green-600' : ''}`}
+                      className={`text-right font-semibold text-sm ${t.amount < 0 ? 'text-green-600' : ''}`}
                     >
                       {formatCurrency(t.amount)}
                     </TableCell>

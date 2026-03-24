@@ -22,6 +22,7 @@ export interface Transaction {
   cardId: string
   billingMonth?: string
   billingYear?: string
+  cardholder?: string
   installments?: {
     current: number
     total: number

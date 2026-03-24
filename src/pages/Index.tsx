@@ -6,6 +6,8 @@ import { AddTransactionDialog } from '@/components/transactions/AddTransactionDi
 import { ImportStatementDialog } from '@/components/dashboard/ImportStatementDialog'
 import { RecurringSuggestions } from '@/components/dashboard/RecurringSuggestions'
 import { PeriodSelector } from '@/components/dashboard/PeriodSelector'
+import { MonthlyEvolutionChart } from '@/components/analytics/MonthlyEvolutionChart'
+import { MonthlyComparison } from '@/components/analytics/MonthlyComparison'
 
 export default function Index() {
   return (
@@ -23,6 +25,11 @@ export default function Index() {
       </div>
 
       <SummaryCards />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MonthlyEvolutionChart />
+        <MonthlyComparison />
+      </div>
 
       <RecurringSuggestions />
 

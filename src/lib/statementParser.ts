@@ -5,6 +5,7 @@ export interface ParsedTransaction {
   description: string
   amount: number
   category: TransactionCategory
+  cardholder?: string
 }
 
 export const categorizeTransaction = (
@@ -25,6 +26,14 @@ export const categorizeTransaction = (
   if (history && history.length > 0) {
     const pastMatches = history.filter((t) => {
       const pastDesc = t.description.toLowerCase()
+      if (pastDesc === lowerDesc) return true
+
+      const tokensA = pastDesc.split(/[\s*,-]+/).filter((x) => x.length > 2)
+      const tokensB = lowerDesc.split(/[\s*,-]+/).filter((x) => x.length > 2)
+      const intersection = tokensA.filter((token) => tokensB.includes(token))
+
+      if (intersection.length > 0) return true
+
       return (
         (pastDesc.includes(lowerDesc) || lowerDesc.includes(pastDesc)) &&
         Math.min(pastDesc.length, lowerDesc.length) > 3
@@ -79,35 +88,55 @@ export const parseStatementLinesFlexible = (
   history: Transaction[] = [],
 ): ParsedTransaction[] => {
   const transactions: ParsedTransaction[] = []
-  // Regex to match typical lines: "15/04 UBER *TRIP R$ 25,50" or "UBER 25.50"
   const regex =
-    /^(?:(\d{2}\/\d{2})\s+)?(.+?)\s+(?:R\$?\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2}|-?\d+\.\d{2})$/i
+    /^(?:(\d{2}\/\d{2})\s+)?(.*?)\s+(?:R\$?\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2}|-?\d+\.\d{2})$/i
 
   let lastDate = `15/${defaultMonth.padStart(2, '0')}`
+  let currentCardholder = 'Principal'
 
   for (const line of lines) {
-    const dateMatch = line.match(/^(\d{2}\/\d{2})$/)
+    const tLine = line.trim()
+    if (!tLine) continue
+
+    // Heuristic to detect cardholder block
+    if (
+      /^[A-ZÀ-Ÿ][A-ZÀ-Ÿ\s]{2,40}$/.test(tLine) &&
+      !tLine.match(/\d/) &&
+      !/(TOTAL|SALDO|PAGAMENTO|FATURA|JUROS|ENCARGOS|ANTERIOR|ATUAL|VENCIMENTO|DESCONTO|CREDITO|DEBITO|LANCAMENTO|COMPROVANTE|CARTAO|BANCO|RESUMO|VALOR|PAGO|RECEBIDO|TARIFA|MULTA|MORA|IOF|LIMITE|DISPONIVEL|TRANSACOES|NACIONAIS|INTERNACIONAIS|COMPRAS|A VISTA|PARCELADAS|ESTORNO|TAXA|OUTROS|MENSALIDADE|ANUIDADE|PROTECAO|SEGURO)/i.test(
+        tLine,
+      )
+    ) {
+      currentCardholder = tLine
+      continue
+    }
+
+    const dateMatch = tLine.match(/^(\d{2}\/\d{2})$/)
     if (dateMatch) {
       lastDate = dateMatch[1]
       continue
     }
 
-    const match = line.match(regex)
+    const match = tLine.match(regex)
     if (match) {
       const dateStr = match[1] || lastDate
-      const desc = match[2]
+      let desc = match[2]
       const amountStr = match[3]
 
-      const lowerDesc = desc.trim().toLowerCase()
+      desc = desc.replace(/^\d{2}\/\d{2}\s+/, '')
+      desc = desc.replace(/\s+\d{2}\/\d{2}$/, '')
+      desc = desc.trim()
 
-      // Ignore common non-expense lines
+      const lowerDesc = desc.toLowerCase()
+
       if (
-        /(pagamento de fatura|pagamento recebido|saldo anterior|total da fatura|saldo atual)/.test(
+        /(pagamento de fatura|pagamento recebido|saldo anterior|total da fatura|saldo atual|credito em conta|estorno)/.test(
           lowerDesc,
         )
       )
         continue
       if (/^(pagamento|fatura|total|saldo)$/.test(lowerDesc)) continue
+      if (/^\d{2}\/\d{2}(\/\d{2,4})?$/.test(desc)) continue
+      if (desc.length < 2) continue
 
       let isNegative = false
       let rawAmount = amountStr
@@ -137,7 +166,6 @@ export const parseStatementLinesFlexible = (
       const defMonthNum = parseInt(defaultMonth, 10)
       const txMonthNum = parseInt(month, 10)
 
-      // Handle year wrap-around robustly
       if (txMonthNum > defMonthNum && txMonthNum - defMonthNum > 6) {
         txYear--
       } else if (defMonthNum > txMonthNum && defMonthNum - txMonthNum > 6) {
@@ -148,9 +176,10 @@ export const parseStatementLinesFlexible = (
 
       transactions.push({
         date: date.toISOString(),
-        description: desc.trim(),
+        description: desc,
         amount,
-        category: categorizeTransaction(desc.trim(), rules, history),
+        category: categorizeTransaction(desc, rules, history),
+        cardholder: currentCardholder,
       })
     }
   }
