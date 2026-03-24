@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatDate } from '@/lib/formatters'
-import { ArrowLeft, Edit, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Loader2, XCircle } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { VirtualCard } from '@/components/shared/VirtualCard'
 import { EditCardDialog } from '@/components/cards/EditCardDialog'
@@ -38,8 +38,9 @@ const COLORS = [
 export default function CardDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { cardsWithBalance, transactions, deleteCard } = useFinance()
-  const [isDeleting, setIsDeleting] = useState(false)
+  const { cardsWithBalance, transactions, deleteCard, deleteTransaction } = useFinance()
+  const [isDeletingCard, setIsDeletingCard] = useState(false)
+  const [deletingTxId, setDeletingTxId] = useState<string | null>(null)
 
   const card = cardsWithBalance.find((c) => c.id === id)
 
@@ -49,7 +50,14 @@ export default function CardDetailsPage() {
   )
 
   const availableMonths = useMemo(() => {
-    const months = new Set(cardTransactions.map((t) => t.date.substring(0, 7)))
+    const months = new Set(
+      cardTransactions.map((t) => {
+        if (t.billingYear && t.billingMonth) {
+          return `${t.billingYear}-${t.billingMonth.padStart(2, '0')}`
+        }
+        return t.date.substring(0, 7)
+      }),
+    )
     const sorted = Array.from(months).sort().reverse()
     if (sorted.length === 0) {
       const now = new Date()
@@ -60,9 +68,20 @@ export default function CardDetailsPage() {
 
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0])
 
+  useEffect(() => {
+    if (!availableMonths.includes(selectedMonth) && availableMonths.length > 0) {
+      setSelectedMonth(availableMonths[0])
+    }
+  }, [availableMonths, selectedMonth])
+
   const monthTransactions = useMemo(() => {
     return cardTransactions
-      .filter((t) => t.date.startsWith(selectedMonth))
+      .filter((t) => {
+        if (t.billingYear && t.billingMonth) {
+          return `${t.billingYear}-${t.billingMonth.padStart(2, '0')}` === selectedMonth
+        }
+        return t.date.startsWith(selectedMonth)
+      })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }, [cardTransactions, selectedMonth])
 
@@ -80,14 +99,23 @@ export default function CardDetailsPage() {
       .sort((a, b) => b.value - a.value)
   }, [monthTransactions])
 
-  const handleDelete = async () => {
+  const handleDeleteCard = async () => {
     if (!card) return
-    setIsDeleting(true)
+    setIsDeletingCard(true)
     try {
       await deleteCard(card.id)
       navigate('/cards')
     } finally {
-      setIsDeleting(false)
+      setIsDeletingCard(false)
+    }
+  }
+
+  const handleDeleteTx = async (txId: string) => {
+    setDeletingTxId(txId)
+    try {
+      await deleteTransaction(txId)
+    } finally {
+      setDeletingTxId(null)
     }
   }
 
@@ -129,8 +157,8 @@ export default function CardDetailsPage() {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={isDeleting}>
-                {isDeleting ? (
+              <Button variant="destructive" size="sm" disabled={isDeletingCard}>
+                {isDeletingCard ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -149,7 +177,7 @@ export default function CardDetailsPage() {
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={handleDelete}
+                  onClick={handleDeleteCard}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Sim, excluir
@@ -184,7 +212,7 @@ export default function CardDetailsPage() {
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-6 items-center">
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-sm text-muted-foreground mb-1">Total do Período</p>
+                <p className="text-sm text-muted-foreground mb-1">Total da Fatura</p>
                 <div className="text-4xl font-bold text-primary">{formatCurrency(monthTotal)}</div>
               </div>
               {categoryData.length > 0 && (
@@ -219,11 +247,11 @@ export default function CardDetailsPage() {
           <CardTitle>Transações de {formatMonth(selectedMonth)}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {monthTransactions.map((t) => (
               <div
                 key={t.id}
-                className="flex justify-between items-center py-3 border-b last:border-0 hover:bg-muted/30 px-2 rounded transition-colors"
+                className="flex justify-between items-center py-3 border-b last:border-0 hover:bg-muted/30 px-2 rounded transition-colors group"
               >
                 <div>
                   <p className="font-medium">{t.description}</p>
@@ -232,12 +260,27 @@ export default function CardDetailsPage() {
                     <span className="font-medium text-foreground/70">{t.category}</span>
                   </p>
                 </div>
-                <div className="font-semibold">{formatCurrency(t.amount)}</div>
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold">{formatCurrency(t.amount)}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity ${deletingTxId === t.id ? 'opacity-100' : ''}`}
+                    onClick={() => handleDeleteTx(t.id)}
+                    disabled={deletingTxId === t.id}
+                  >
+                    {deletingTxId === t.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             ))}
             {monthTransactions.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
-                Nenhuma transação neste período.
+                Nenhuma transação nesta fatura.
               </div>
             )}
           </div>

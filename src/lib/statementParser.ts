@@ -87,9 +87,14 @@ export const parseStatementLinesFlexible = (
       const defMonthNum = parseInt(defaultMonth, 10)
       const txMonthNum = parseInt(month, 10)
 
-      // Handle year wrap-around
-      if (defMonthNum === 1 && txMonthNum === 12) txYear--
-      else if (defMonthNum === 12 && txMonthNum === 1) txYear++
+      // Handle year wrap-around robustly
+      // If transaction month is much greater than billing month (e.g. tx=11, bill=01), it's from the previous year
+      if (txMonthNum > defMonthNum && txMonthNum - defMonthNum > 6) {
+        txYear--
+      } else if (defMonthNum > txMonthNum && defMonthNum - txMonthNum > 6) {
+        // e.g. tx=01, bill=12 -> tx is early next year
+        txYear++
+      }
 
       const date = new Date(txYear, txMonthNum - 1, parseInt(day, 10))
 

@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Trash2, Search, Filter, Loader2, FileUp } from 'lucide-react'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
 import { ImportStatementDialog } from '@/components/dashboard/ImportStatementDialog'
+import { PeriodSelector } from '@/components/dashboard/PeriodSelector'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -63,7 +64,8 @@ export default function TransactionsPage() {
             Despesas da fatura de {selectedMonth}/{selectedYear}.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <PeriodSelector />
           <ImportStatementDialog />
           <AddTransactionDialog />
         </div>

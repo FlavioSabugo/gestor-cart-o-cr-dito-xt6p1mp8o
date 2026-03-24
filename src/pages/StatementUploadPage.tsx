@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useFinance } from '@/stores/financeStore'
 import { FileUp, Loader2, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -19,19 +19,22 @@ import { toast } from '@/hooks/use-toast'
 
 export default function StatementUploadPage() {
   const navigate = useNavigate()
-  const { rules, cards } = useFinance()
+  const { rules, cards, selectedMonth: globalMonth, selectedYear: globalYear } = useFinance()
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState<ParsedTransaction[] | null>(null)
 
-  const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0')
   const currentYear = new Date().getFullYear()
-  const currentYearStr = String(currentYear)
   const YEARS = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString())
 
   const [selectedCard, setSelectedCard] = useState<string>('')
-  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth)
-  const [selectedYear, setSelectedYear] = useState<string>(currentYearStr)
+  const [selectedMonth, setSelectedMonth] = useState<string>(globalMonth)
+  const [selectedYear, setSelectedYear] = useState<string>(globalYear)
+
+  useEffect(() => {
+    setSelectedMonth(globalMonth)
+    setSelectedYear(globalYear)
+  }, [globalMonth, globalYear])
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile)
