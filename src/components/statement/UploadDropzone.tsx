@@ -26,8 +26,11 @@ export function UploadDropzone({ onFileSelect, disabled }: UploadDropzoneProps) 
     if (disabled) return
 
     const files = e.dataTransfer.files
-    if (files.length > 0 && files[0].type === 'application/pdf') {
-      onFileSelect(files[0])
+    if (files.length > 0) {
+      const file = files[0]
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.csv')) {
+        onFileSelect(file)
+      }
     }
   }
 
@@ -59,21 +62,21 @@ export function UploadDropzone({ onFileSelect, disabled }: UploadDropzoneProps) 
           <UploadCloud className="w-10 h-10 text-primary" />
         )}
       </div>
-      <h3 className="text-xl font-semibold mb-2">
-        {isDragging ? 'Solte para enviar' : 'Faça upload da sua Fatura'}
+      <h3 className="text-xl font-semibold mb-2 text-center">
+        {isDragging ? 'Solte para enviar' : 'Faça upload da sua Fatura (PDF ou CSV)'}
       </h3>
       <p className="text-muted-foreground text-center max-w-sm mb-6">
-        Arraste e solte o arquivo PDF da sua fatura aqui ou clique para selecionar. O sistema irá
+        Arraste e solte o arquivo da sua fatura aqui ou clique para selecionar. O sistema irá
         extrair e categorizar automaticamente.
       </p>
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <span className="bg-muted px-2 py-1 rounded">Apenas PDF</span>
+      <div className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
+        <span className="bg-muted px-2 py-1 rounded">PDF ou CSV</span>
         <span>Até 10MB</span>
       </div>
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf"
+        accept="application/pdf,.csv"
         className="hidden"
         onChange={handleChange}
         disabled={disabled}

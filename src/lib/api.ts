@@ -22,7 +22,7 @@ const handleError = (error: any, action: string) => {
   console.error(`Error during ${action}:`, error)
   toast({
     title: 'Erro de Conexão',
-    description: `Não foi possível ${action}. Verifique sua conexão com o Supabase.`,
+    description: `Não foi possível ${action}. Verifique sua conexão com o Supabase e as políticas RLS.`,
     variant: 'destructive',
   })
   throw error
@@ -38,9 +38,9 @@ export const api = {
         supabase.from('uploads').select('*').order('uploadDate', { ascending: false }),
       ])
 
-      if (cardsRes.error || txRes.error || rulesRes.error || uploadsRes.error) {
-        throw new Error('Database fetch error')
-      }
+      // Instead of failing the entire application, we log the errors and return whatever data succeeded
+      if (cardsRes.error) console.error('Error fetching cards:', cardsRes.error)
+      if (txRes.error) console.error('Error fetching transactions:', txRes.error)
 
       let rules = rulesRes.data || []
       if (rules.length === 0) {

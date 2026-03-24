@@ -4,7 +4,7 @@ import { FileUp, Loader2, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UploadDropzone } from '@/components/statement/UploadDropzone'
 import { StatementResults } from '@/components/statement/StatementResults'
-import { mockParsePDF, ParsedTransaction } from '@/lib/statementParser'
+import { mockParsePDF, categorizeTransaction, ParsedTransaction } from '@/lib/statementParser'
 import { useNavigate } from 'react-router-dom'
 import {
   Select,
@@ -37,11 +37,45 @@ export default function StatementUploadPage() {
     setIsProcessing(true)
 
     try {
-      // Simulate PDF parsing and extraction using active custom rules, assigning accurate dates
-      const extractedData = await mockParsePDF(selectedFile, rules, selectedMonth, selectedYear)
-      setResults(extractedData)
+      if (selectedFile.name.toLowerCase().endsWith('.csv')) {
+        const text = await selectedFile.text()
+        const lines = text.split('\n')
+        const parsedTxs: ParsedTransaction[] = []
+        for (const line of lines) {
+          if (!line.trim()) continue
+          const parts = line.split(',')
+          if (parts.length >= 3) {
+            const dateStr = parts[0].trim()
+            const desc = parts[1].trim()
+            const amountStr = parts[2].trim()
+            const amount = parseFloat(amountStr)
+
+            if (!isNaN(amount) && dateStr && desc) {
+              let parsedDate = new Date(dateStr)
+              if (isNaN(parsedDate.getTime())) {
+                parsedDate = new Date(
+                  parseInt(selectedYear, 10),
+                  parseInt(selectedMonth, 10) - 1,
+                  15,
+                )
+              }
+              parsedTxs.push({
+                date: parsedDate.toISOString(),
+                description: desc,
+                amount,
+                category: categorizeTransaction(desc, rules),
+              })
+            }
+          }
+        }
+        setResults(parsedTxs)
+      } else {
+        // PDF mock fallback
+        const extractedData = await mockParsePDF(selectedFile, rules, selectedMonth, selectedYear)
+        setResults(extractedData)
+      }
     } catch (error) {
-      console.error('Failed to parse PDF', error)
+      console.error('Failed to parse file', error)
     } finally {
       setIsProcessing(false)
     }
@@ -63,10 +97,10 @@ export default function StatementUploadPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileUp className="w-6 h-6 text-primary" /> Importar Fatura PDF
+            <FileUp className="w-6 h-6 text-primary" /> Importar Fatura (PDF / CSV)
           </h2>
           <p className="text-muted-foreground">
-            Extração automática aplicando suas regras de categorização.
+            Envie sua fatura em PDF ou CSV para extração automática e categorização inteligente.
           </p>
         </div>
         {results && (
