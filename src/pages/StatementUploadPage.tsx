@@ -19,7 +19,13 @@ import { toast } from '@/hooks/use-toast'
 
 export default function StatementUploadPage() {
   const navigate = useNavigate()
-  const { rules, cards, selectedMonth: globalMonth, selectedYear: globalYear } = useFinance()
+  const {
+    rules,
+    cards,
+    transactions,
+    selectedMonth: globalMonth,
+    selectedYear: globalYear,
+  } = useFinance()
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState<ParsedTransaction[] | null>(null)
@@ -67,14 +73,20 @@ export default function StatementUploadPage() {
                 date: parsedDate.toISOString(),
                 description: desc,
                 amount,
-                category: categorizeTransaction(desc, rules),
+                category: categorizeTransaction(desc, rules, transactions),
               })
             }
           }
         }
         setResults(parsedTxs)
       } else {
-        const extractedData = await parsePDF(selectedFile, rules, selectedMonth, selectedYear)
+        const extractedData = await parsePDF(
+          selectedFile,
+          rules,
+          selectedMonth,
+          selectedYear,
+          transactions,
+        )
         if (extractedData.length === 0) {
           toast({
             title: 'Nenhuma transação encontrada',

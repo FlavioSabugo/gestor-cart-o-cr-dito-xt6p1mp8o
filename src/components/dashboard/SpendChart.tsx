@@ -25,6 +25,7 @@ export function SpendChart() {
     })
 
     return Object.keys(acc)
+      .filter((key) => acc[key] > 0)
       .map((key) => ({
         category: key,
         amount: acc[key],

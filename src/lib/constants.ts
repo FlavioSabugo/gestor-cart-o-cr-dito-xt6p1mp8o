@@ -19,6 +19,7 @@ export const STANDARD_CATEGORIES = [
   'Uber',
   'Farmácias',
   'Assinaturas',
+  'Taxas e Impostos',
   'Outros',
 ]
 

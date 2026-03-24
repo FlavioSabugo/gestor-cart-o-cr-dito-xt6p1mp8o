@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ParsedTransaction } from '@/lib/statementParser'
 import { useFinance } from '@/stores/financeStore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -15,6 +15,14 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Save, Loader2 } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { STANDARD_CATEGORIES } from '@/lib/constants'
 
 interface StatementResultsProps {
   results: ParsedTransaction[]
@@ -26,16 +34,28 @@ interface StatementResultsProps {
 }
 
 export function StatementResults({
-  results,
+  results: initialResults,
   file,
   cardId,
   billingMonth,
   billingYear,
   onImportComplete,
 }: StatementResultsProps) {
-  const { cards, addTransactions, addUpload } = useFinance()
+  const { cards, addTransactions, addUpload, rules } = useFinance()
   const card = cards.find((c) => c.id === cardId)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [results, setResults] = useState<ParsedTransaction[]>(initialResults)
+
+  useEffect(() => {
+    setResults(initialResults)
+  }, [initialResults])
+
+  const availableCategories = useMemo(() => {
+    const cats = new Set(STANDARD_CATEGORIES)
+    rules.forEach((r) => cats.add(r.category))
+    results.forEach((r) => cats.add(r.category))
+    return Array.from(cats).sort()
+  }, [rules, results])
 
   const { totals, grandTotal } = useMemo(() => {
     const categoryTotals: Record<string, number> = {}
@@ -47,7 +67,9 @@ export function StatementResults({
     return { totals: categoryTotals, grandTotal: total }
   }, [results])
 
-  const sortedCategories = Object.entries(totals).sort((a, b) => b[1] - a[1])
+  const sortedCategories = Object.entries(totals)
+    .filter(([_, amount]) => amount > 0)
+    .sort((a, b) => b[1] - a[1])
 
   const handleImport = async () => {
     setIsSubmitting(true)
@@ -73,6 +95,12 @@ export function StatementResults({
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const updateCategory = (index: number, newCategory: string) => {
+    const newResults = [...results]
+    newResults[index].category = newCategory
+    setResults(newResults)
   }
 
   return (
@@ -113,7 +141,7 @@ export function StatementResults({
         <Card className="shadow-subtle">
           <CardHeader>
             <CardTitle>Resumo por Categoria</CardTitle>
-            <CardDescription>Distribuição aplicada com regras</CardDescription>
+            <CardDescription>Distribuição inteligente e editável</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg mb-6">
@@ -128,7 +156,7 @@ export function StatementResults({
                     <span className="font-medium text-muted-foreground">{cat}</span>
                     <span className="font-medium">{formatCurrency(amount)}</span>
                   </div>
-                  <Progress value={(amount / grandTotal) * 100} className="h-2" />
+                  <Progress value={(amount / Math.max(grandTotal, 1)) * 100} className="h-2" />
                 </div>
               ))}
             </div>
@@ -139,7 +167,7 @@ export function StatementResults({
       <Card className="lg:col-span-2 shadow-subtle flex flex-col h-full">
         <CardHeader>
           <CardTitle>Transações Extraídas</CardTitle>
-          <CardDescription>Arquivo: {file.name}</CardDescription>
+          <CardDescription>Revise e ajuste as categorias antes de salvar</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 overflow-auto p-0 px-6 pb-6">
           <div className="rounded-md border h-[500px] overflow-auto">
@@ -158,13 +186,26 @@ export function StatementResults({
                     <TableCell className="whitespace-nowrap text-muted-foreground">
                       {formatDate(t.date)}
                     </TableCell>
-                    <TableCell className="font-medium">{t.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-normal">
-                        {t.category}
-                      </Badge>
+                    <TableCell className="font-medium max-w-[200px] truncate" title={t.description}>
+                      {t.description}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell>
+                      <Select value={t.category} onValueChange={(val) => updateCategory(idx, val)}>
+                        <SelectTrigger className="h-8 text-xs w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-medium ${t.amount < 0 ? 'text-green-600' : ''}`}
+                    >
                       {formatCurrency(t.amount)}
                     </TableCell>
                   </TableRow>

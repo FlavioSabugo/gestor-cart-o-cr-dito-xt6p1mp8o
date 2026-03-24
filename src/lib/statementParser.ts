@@ -1,4 +1,4 @@
-import { TransactionCategory, CategorizationRule } from '@/types/finance'
+import { Transaction, TransactionCategory, CategorizationRule } from '@/types/finance'
 
 export interface ParsedTransaction {
   date: string
@@ -10,17 +10,42 @@ export interface ParsedTransaction {
 export const categorizeTransaction = (
   description: string,
   rules: CategorizationRule[],
+  history: Transaction[] = [],
 ): TransactionCategory => {
   const lowerDesc = description.toLowerCase()
 
-  // Apply custom rules
+  // 1. Apply custom rules
   for (const rule of rules) {
     if (lowerDesc.includes(rule.keyword.toLowerCase())) {
       return rule.category
     }
   }
 
-  // Fallbacks
+  // 2. AI/History Learning: Find the most common category for this exact or similar description
+  if (history && history.length > 0) {
+    const pastMatches = history.filter((t) => {
+      const pastDesc = t.description.toLowerCase()
+      return (
+        (pastDesc.includes(lowerDesc) || lowerDesc.includes(pastDesc)) &&
+        Math.min(pastDesc.length, lowerDesc.length) > 3
+      )
+    })
+
+    if (pastMatches.length > 0) {
+      const categoryCounts = pastMatches.reduce(
+        (acc, curr) => {
+          acc[curr.category] = (acc[curr.category] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+
+      const mostFrequent = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]
+      if (mostFrequent) return mostFrequent[0]
+    }
+  }
+
+  // 3. Fallbacks
   if (/(posto|shell|ipiranga|petrobras|br distribuidora|ale)/.test(lowerDesc)) return 'Combustível'
   if (
     /(99app|99|uber|estacionamento|pedagio|conectar|sem parar|veloe|metrô|metro|cptm)/.test(
@@ -41,6 +66,7 @@ export const categorizeTransaction = (
   if (/(shopping|loja|mercado livre|shopee|zara|renner|shein|aliexpress|amazon)/.test(lowerDesc))
     return 'Compras'
   if (/(netflix|spotify|prime|hbo|disney|apple)/.test(lowerDesc)) return 'Assinaturas'
+  if (/(iof|imposto|taxa|juros|multa|encargos)/.test(lowerDesc)) return 'Taxas e Impostos'
 
   return 'Outros'
 }
@@ -50,6 +76,7 @@ export const parseStatementLinesFlexible = (
   rules: CategorizationRule[],
   defaultYear: string,
   defaultMonth: string,
+  history: Transaction[] = [],
 ): ParsedTransaction[] => {
   const transactions: ParsedTransaction[] = []
   // Regex to match typical lines: "15/04 UBER *TRIP R$ 25,50" or "UBER 25.50"
@@ -71,16 +98,39 @@ export const parseStatementLinesFlexible = (
       const desc = match[2]
       const amountStr = match[3]
 
-      // Ignore common non-expense lines
-      if (/(pagamento|fatura|recebido|pago|saldo anterior|iof|juros|multa|encargos)/i.test(desc))
-        continue
+      const lowerDesc = desc.trim().toLowerCase()
 
-      let cleanAmount = amountStr.replace(/\./g, '').replace(',', '.')
-      if (amountStr.includes('.') && !amountStr.includes(',')) {
-        cleanAmount = amountStr
+      // Ignore common non-expense lines
+      if (
+        /(pagamento de fatura|pagamento recebido|saldo anterior|total da fatura|saldo atual)/.test(
+          lowerDesc,
+        )
+      )
+        continue
+      if (/^(pagamento|fatura|total|saldo)$/.test(lowerDesc)) continue
+
+      let isNegative = false
+      let rawAmount = amountStr
+      if (rawAmount.startsWith('-')) {
+        isNegative = true
+        rawAmount = rawAmount.substring(1)
       }
-      const amount = parseFloat(cleanAmount)
-      if (isNaN(amount) || amount <= 0) continue
+
+      let cleanAmount = rawAmount
+      if (rawAmount.includes(',') && rawAmount.includes('.')) {
+        if (rawAmount.lastIndexOf(',') > rawAmount.lastIndexOf('.')) {
+          cleanAmount = rawAmount.replace(/\./g, '').replace(',', '.')
+        } else {
+          cleanAmount = rawAmount.replace(/,/g, '')
+        }
+      } else if (rawAmount.includes(',')) {
+        cleanAmount = rawAmount.replace(',', '.')
+      }
+
+      let amount = parseFloat(cleanAmount)
+      if (isNaN(amount) || amount === 0) continue
+
+      if (isNegative) amount = -amount
 
       const [day, month] = dateStr.split('/')
       let txYear = parseInt(defaultYear, 10)
@@ -88,11 +138,9 @@ export const parseStatementLinesFlexible = (
       const txMonthNum = parseInt(month, 10)
 
       // Handle year wrap-around robustly
-      // If transaction month is much greater than billing month (e.g. tx=11, bill=01), it's from the previous year
       if (txMonthNum > defMonthNum && txMonthNum - defMonthNum > 6) {
         txYear--
       } else if (defMonthNum > txMonthNum && defMonthNum - txMonthNum > 6) {
-        // e.g. tx=01, bill=12 -> tx is early next year
         txYear++
       }
 
@@ -102,7 +150,7 @@ export const parseStatementLinesFlexible = (
         date: date.toISOString(),
         description: desc.trim(),
         amount,
-        category: categorizeTransaction(desc.trim(), rules),
+        category: categorizeTransaction(desc.trim(), rules, history),
       })
     }
   }
@@ -114,6 +162,7 @@ export const parsePDF = async (
   rules: CategorizationRule[],
   billingMonth: string,
   billingYear: string,
+  history: Transaction[] = [],
 ): Promise<ParsedTransaction[]> => {
   try {
     if (!(window as any).pdfjsLib) {
@@ -152,7 +201,7 @@ export const parsePDF = async (
       }
     }
 
-    return parseStatementLinesFlexible(lines, rules, billingYear, billingMonth)
+    return parseStatementLinesFlexible(lines, rules, billingYear, billingMonth, history)
   } catch (error) {
     console.error('Error parsing PDF:', error)
     throw new Error(

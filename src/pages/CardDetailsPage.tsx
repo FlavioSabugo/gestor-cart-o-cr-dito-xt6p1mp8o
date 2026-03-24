@@ -91,6 +91,7 @@ export default function CardDetailsPage() {
       acc[t.category] = (acc[t.category] || 0) + t.amount
     })
     return Object.keys(acc)
+      .filter((key) => acc[key] > 0)
       .map((key, i) => ({
         name: key,
         value: acc[key],
@@ -261,7 +262,9 @@ export default function CardDetailsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-semibold">{formatCurrency(t.amount)}</span>
+                  <span className={`font-semibold ${t.amount < 0 ? 'text-green-600' : ''}`}>
+                    {formatCurrency(t.amount)}
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
